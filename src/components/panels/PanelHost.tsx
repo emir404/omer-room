@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { focusObjectButton, overlay } from "@/components/room/registry";
+import { focusObjectButton } from "@/components/room/registry";
 import { CHAPTERS, type ChapterId, parentPath, parsePath } from "@/lib/routes";
 import { playSfx } from "@/lib/sound";
 import { useRoom } from "@/lib/store";
@@ -20,8 +20,10 @@ interface Snapshot {
 /**
  * Where page content goes. The same server-rendered children are placed by CSS according to
  * html[data-mode] and this host's data-kind:
- *   room mode: intro card · right panel (bottom sheet on mobile) · on the object's screen
- *   doc mode:  a normal readable column
+ *   room mode: a right-hand sheet (a bottom sheet on phones) for panel chapters; screen chapters
+ *              live on the monitor and the phone (ScreenLayer), except the computer on phones,
+ *              which opens here as a sheet
+ *   doc mode:  hidden — the text view (in the layout) shows everything
  *
  * Exit animation without router hacks: Next's layout `children` always renders the *current*
  * route, so an exiting React tree would show the new page. Instead, right before the new chapter
@@ -65,19 +67,16 @@ export function PanelHost({ children }: { children: ReactNode }) {
     };
   });
 
-  // the screen UIs are positioned by the scene (Projector) through this element
-  useEffect(() => {
-    overlay.screenHost = kind === "screen" ? host.current : null;
-  }, [kind, key]);
-
-  // Esc closes: item → chapter → room. Never history.back() (deep-link visitors would leave).
+  // Esc closes: item → its list (the panel's back link) → chapter → room. Never history.back()
+  // (deep-link visitors would leave the site).
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (parsePath(window.location.pathname).focus === "room") return;
       event.preventDefault();
       playSfx("close");
-      useRoom.getState().navigate(parentPath(window.location.pathname));
+      const back = document.querySelector<HTMLAnchorElement>(".chapter-host:not(.chapter-ghost) [data-back]")?.getAttribute("href");
+      useRoom.getState().navigate(back ?? parentPath(window.location.pathname));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -126,7 +125,7 @@ export function PanelHost({ children }: { children: ReactNode }) {
         data-expanded={expanded ? "1" : "0"}
         aria-label={chapter ? CHAPTERS[chapter].title : "Welcome"}
       >
-        {kind === "panel" ? (
+        {kind === "panel" || chapter === "computer" ? (
           <button
             type="button"
             className="sheet-handle"

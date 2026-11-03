@@ -1,9 +1,9 @@
 {
-  "intro": "Four shelves: what I built at school, the economics olympiad, Model UN, and the books that stuck with me.",
+  "intro": "Pick a binder: what I built at school, the economics olympiad, Model UN. The books are on the bottom shelf.",
   "shelves": [
-    { "id": "school", "title": "School & projects", "blurb": "Clubs I started, a nonprofit, and research." },
-    { "id": "olympiad", "title": "Economics Olympiad", "blurb": "National gold, then captain of Team Türkiye." },
-    { "id": "mun", "title": "Model UN", "blurb": "Running content for Türkiye's largest MUN conference." },
-    { "id": "books", "title": "Books I've read", "blurb": "Notes and takeaways, one book at a time." }
+    { "id": "school", "label": "School", "title": "School & projects", "blurb": "Clubs I started, a nonprofit, and research." },
+    { "id": "olympiad", "label": "Olympiad", "title": "Economics Olympiad", "blurb": "National gold, then captain of Team Türkiye." },
+    { "id": "mun", "label": "Model UN", "title": "Model UN", "blurb": "Running content for Türkiye's largest MUN conference." },
+    { "id": "books", "label": "Books", "title": "Books I've read", "blurb": "Notes and takeaways, one book at a time." }
   ]
 }

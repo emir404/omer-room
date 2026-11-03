@@ -81,7 +81,17 @@ export type ShelfId = (typeof SHELF_IDS)[number];
 
 export const ShelfMetaSchema = z.object({
   intro: z.string().min(1),
-  shelves: z.array(z.object({ id: z.enum(SHELF_IDS), title: z.string().min(1), blurb: z.string().min(1) })).length(4),
+  shelves: z
+    .array(
+      z.object({
+        id: z.enum(SHELF_IDS),
+        /** The word on the binder's spine (short: it has to read from across the room). */
+        label: z.string().min(1).max(12),
+        title: z.string().min(1),
+        blurb: z.string().min(1),
+      }),
+    )
+    .length(4),
 });
 export type ShelfMeta = z.infer<typeof ShelfMetaSchema>;
 
@@ -108,6 +118,11 @@ export const BookSchema = z.object({
   takeaway: z.string().min(1),
   readIn: z.string().optional(),
   spine: z.object({ color: hex, text: hex.optional() }).optional(),
+  /** The real cover (public/content/books/…). `pnpm covers` fetches it from Open Library by isbn. */
+  cover: ImageSchema.optional(),
+  isbn: z.string().regex(/^[0-9X-]{10,17}$/, { message: "an ISBN-10 or ISBN-13, digits only" }).optional(),
+  /** Stand it face-out on the shelf, cover showing (the first featured book gets the spot). */
+  featured: z.boolean().default(false),
   draft,
 });
 export type Book = z.infer<typeof BookSchema>;
@@ -161,13 +176,24 @@ export const WindowPageSchema = z.object({
   facts: z.array(z.object({ label: z.string().min(1), value: z.string().min(1) })).default([]),
   metrics,
   photos: images,
+  /** Your own photo for the view out of the window (replaces the default orchard). A landscape
+   *  shot works best; `fov` is its horizontal field of view (a phone's main camera ≈ 70°),
+   *  `horizon` where the horizon sits, from the top (0) to the bottom (1). */
+  view: z
+    .object({
+      src: z.string().startsWith("/content/"),
+      fov: z.number().min(30).max(140).default(70),
+      horizon: z.number().min(0).max(1).default(0.5),
+    })
+    .optional(),
 });
 export type WindowPage = z.infer<typeof WindowPageSchema>;
 
 export const LetterPageSchema = z.object({
   title: z.string().min(1),
   intro: z.string().min(1),
-  /** The letter itself. Also drawn inside the frame on the wall. */
+  /** The letter itself, shown exactly as the image is: in the chapter at full resolution, and
+   *  inside the frame on the wall (the frame is built to its proportions, see art/README.md). */
   letter: ImageSchema.optional(),
   metrics,
   reactions: z

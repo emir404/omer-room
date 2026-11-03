@@ -22,6 +22,8 @@ for (const tier of ["desktop", "mobile"] as Tier[]) {
   for (const set of Object.values(sets)) {
     for (const url of [set.day, set.mask]) total += size(url);
   }
+  // the window photo and the globe map load with the room
+  for (const view of Object.values(ASSETS.views ?? {})) total += size(view[tier]);
   const ok = total <= BUDGET[tier];
   failed ||= !ok;
   console.log(`${ok ? "✓" : "✗"} ${tier.padEnd(7)} 3D download ${mb(total)} / budget ${mb(BUDGET[tier])}`);

@@ -163,6 +163,19 @@ def plane(name, w, h, loc=(0, 0, 0), rot=(0, 0, 0), mat="paper", parent=None, uv
     return mesh_object(name, bm, _mat(mat), loc, rot, parent, **tags)
 
 
+def rplane(name, w, h, r, loc=(0, 0, 0), rot=(0, 0, 0), mat="paper", seg=8, parent=None, **tags):
+    """Rounded quad in local XZ facing −Y with planar UVs 0..1 (v up), like plane(): a phone screen."""
+    bm = bmesh.new()
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+    f = bm.faces.new([bm.verts.new((x, 0, z)) for x, z in rrect_points(w, h, r, seg)])
+    f.normal_update()
+    if f.normal.y > 0:
+        f.normal_flip()
+    for loop in f.loops:
+        loop[uv_layer].uv = (loop.vert.co.x / w + 0.5, loop.vert.co.z / h + 0.5)
+    return mesh_object(name, bm, _mat(mat), loc, rot, parent, **tags)
+
+
 def rrect_points(w, h, r, seg=6):
     r = min(r, w / 2 - 1e-5, h / 2 - 1e-5)
     pts = []

@@ -7,7 +7,7 @@ import math
 import bmesh
 from mathutils import Matrix, Vector
 
-from layout import BACK_Y, BALL, BALL_R, DOOR, HOOP_BOARD, HOOP_RIM, LEFT_X, LETTER, ROOM_H
+from layout import BACK_Y, BALL, BALL_R, DOOR, HOOP_BOARD, HOOP_RIM, LEFT_X, LETTER, ROOM_H, letter_aspect
 from lib.core import DEG, empty, group, tag
 from lib.geo import box, cyl, frame, from_bm, plane, rrect, sphere, three_sphere, torus, tube
 
@@ -24,16 +24,21 @@ def letter():
         ob.matrix_world = Matrix.Translation(origin + R @ Vector(local)) @ R
         return ob
 
-    put(frame("letter_frame", 0.46, 0.6, 0.4, 0.54, depth, mat="walnut_dark", r=0.0, ir=0.0, seg=1, recess=0.012, inner_mat="paper", bevel=0.004))
-    put(frame("letter_frame_lip", 0.414, 0.554, 0.4, 0.54, 0.004, mat="brass", r=0.0, ir=0.0, seg=1, bevel=0.0008), (0, -0.0004, 0))
-    # the letter itself (live texture at runtime, lit by the room)
-    disp = plane("letter_paper", 0.31, 0.42, mat="paper", contract="display__letter")
+    # the paper fits the real letter's proportions (layout.letter_aspect), inside a mat and a frame
+    aspect = letter_aspect()
+    pw, ph = (0.34, 0.34 / aspect) if aspect > 0.34 / 0.46 else (0.46 * aspect, 0.46)
+    ow, oh = pw + 0.09, ph + 0.09  # the mat shows 4.5 cm around the letter
+    put(frame("letter_frame", ow + 0.06, oh + 0.06, ow, oh, depth, mat="walnut_dark", r=0.0, ir=0.0, seg=1, recess=0.012, inner_mat="paper", bevel=0.004))
+    put(frame("letter_frame_lip", ow + 0.014, oh + 0.014, ow, oh, 0.004, mat="brass", r=0.0, ir=0.0, seg=1, bevel=0.0008), (0, -0.0004, 0))
+    # the letter itself: the image from content/letter.md at runtime, lit by the room
+    disp = plane("letter_paper", pw, ph, mat="paper", contract="display__letter")
+    disp["aspect"] = pw / ph
     put(disp, (0, 0.0114, 0.012))
     # hanging wire up to a nail
     nail = Vector((x - 0.01, y - 0.004, z + 0.42))
     cyl("letter_nail", 0.004, 0.012, loc=nail, rot=(90, 0, 0), mat="brass", seg=10, bevel=0.001, anchor_bottom=True)
     for s in (-1, 1):
-        eye = origin + R @ Vector((s * 0.17, depth - 0.004, 0.26))
+        eye = origin + R @ Vector((s * (ow / 2 - 0.03), depth - 0.004, oh / 2 - 0.01))
         tube(f"letter_wire_{s}", [eye, (eye + nail) / 2 + Vector((0, 0, 0.004)), nail + Vector((0, -0.004, -0.004))], 0.0009, mat="steel", kind="POLY", res=1, bevel_res=2)
 
 

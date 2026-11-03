@@ -8,9 +8,6 @@ import { useRoom } from "@/lib/store";
 import { overlay, pinElements } from "./registry";
 import { useSceneIndex } from "./scene-index";
 
-/** Design widths of the DOM screen UIs (must match .os / .phone widths in globals.css). */
-export const SCREEN_DESIGN_WIDTH = { computer: 640, phone: 360 } as const;
-
 interface Rect {
   x: number;
   y: number;
@@ -27,16 +24,15 @@ const GAP = 4;
  * bottom-up; a label that collides moves above the one blocking it (CSS draws a leader line back
  * to its dot), and every label is clamped inside the viewport.
  */
-function spreadLabels(pins: { el: HTMLElement; x: number; y: number }[], width: number) {
-  // every dot is an obstacle too (except a label's own dot), so a label never covers another pin
+function spreadLabels(pins: { el: HTMLElement; x: number; y: number; cx: number; cy: number }[], width: number) {
+  // every dot is an obstacle too (except a label's own dot), so a label never covers another pin;
+  // and so is the middle of every other object, so a label never hides what you'd tap
   const DOT = 13;
-  const boxes: { l: number; t: number; r: number; b: number; owner?: HTMLElement }[] = pins.map((p) => ({
-    l: p.x - DOT,
-    t: p.y - DOT,
-    r: p.x + DOT,
-    b: p.y + DOT,
-    owner: p.el,
-  }));
+  const BODY = 16;
+  const boxes: { l: number; t: number; r: number; b: number; owner?: HTMLElement }[] = pins.flatMap((p) => [
+    { l: p.x - DOT, t: p.y - DOT, r: p.x + DOT, b: p.y + DOT, owner: p.el },
+    { l: p.cx - BODY, t: p.cy - BODY, r: p.cx + BODY, b: p.cy + BODY, owner: p.el },
+  ]);
   pins.sort((a, b) => b.y - a.y);
   for (const pin of pins) {
     const label = pin.el.querySelector<HTMLElement>(".pin-label");
@@ -63,13 +59,12 @@ function spreadLabels(pins: { el: HTMLElement; x: number; y: number }[], width: 
 }
 
 /**
- * Every rendered frame: project label anchors → pins, the hovered thing's bounds → selection box,
- * and the focused screen's corners → the rect the OS/phone DOM sits in. Writes styles directly.
+ * Every rendered frame: project label anchors → pins, and the hovered thing's bounds → the hover
+ * label above it. Writes styles directly. (The live screens have their own: ScreenProjector.)
  */
 export function Projector() {
   const index = useSceneIndex((s) => s.index);
   const tmp = useMemo(() => ({ v: new Vector3(), box: new Box3(), corners: Array.from({ length: 8 }, () => new Vector3()) }), []);
-  const last = useMemo(() => ({ screen: "" }), []);
 
   const projectBox = (mesh: Mesh, camera: Camera, width: number, height: number): Rect | null => {
     mesh.geometry.computeBoundingBox();
@@ -115,7 +110,7 @@ export function Projector() {
     const { width, height } = size;
 
     const { hovered, focus, hoveredSub, touch } = useRoom.getState();
-    const placed: { el: HTMLElement; x: number; y: number }[] = [];
+    const placed: { el: HTMLElement; x: number; y: number; cx: number; cy: number }[] = [];
     for (const [id, el] of pinElements) {
       const anchor = index.labels.get(id);
       if (!anchor) continue;
@@ -125,7 +120,10 @@ export function Projector() {
       const visible = p.z < 1 && x > -40 && x < width + 40 && y > -40 && y < height + 40;
       el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
       el.dataset.onscreen = visible ? "1" : "0";
-      if (visible) placed.push({ el, x, y });
+      if (!visible) continue;
+      const hit = touch && focus === "room" ? index.hits.get(id) : undefined;
+      const body = hit ? projectBox(hit, camera, width, height) : null;
+      placed.push({ el, x, y, cx: body ? body.x + body.w / 2 : x, cy: body ? body.y + body.h / 2 : y });
     }
     if (touch && focus === "room") spreadLabels(placed, width);
     const selection = overlay.selection;
@@ -143,23 +141,6 @@ export function Projector() {
       }
     }
 
-    const host = overlay.screenHost;
-    if (host && (focus === "computer" || focus === "phone")) {
-      const screen = index.screens.get(focus);
-      const rect = screen ? projectBox(screen, camera, width, height) : null;
-      if (rect) {
-        const key = `${Math.round(rect.x)}|${Math.round(rect.y)}|${Math.round(rect.w)}|${Math.round(rect.h)}`;
-        if (key !== last.screen) {
-          last.screen = key;
-          host.style.setProperty("--sx", `${Math.round(rect.x)}px`);
-          host.style.setProperty("--sy", `${Math.round(rect.y)}px`);
-          host.style.setProperty("--sw", `${Math.round(rect.w)}px`);
-          host.style.setProperty("--sh", `${Math.round(rect.h)}px`);
-          // the screen UIs are laid out at a fixed design width and scaled with CSS zoom (crisp text)
-          host.style.setProperty("--sz", (Math.round(rect.w) / SCREEN_DESIGN_WIDTH[focus]).toFixed(4));
-        }
-      }
-    }
   });
 
   return null;

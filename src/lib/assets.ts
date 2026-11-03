@@ -22,6 +22,8 @@ export interface AssetManifest {
   rgbmRange: number;
   /** Per tier, per bake set. null = the Phase 1 blockout (realtime lights). */
   lightmaps: Record<Tier, Record<string, LightmapSet>> | null;
+  /** Runtime pictures, per tier: the photo behind the window and the globe's map (WebP). */
+  views: { window: Record<Tier, string>; globe: Record<Tier, string> } | null;
   basisTranscoderPath: string;
 }
 
@@ -30,6 +32,7 @@ export const ASSETS: AssetManifest = {
   room: generated.room,
   rgbmRange: generated.rgbmRange,
   lightmaps: generated.lightmaps as unknown as AssetManifest["lightmaps"],
+  views: ((generated as { views?: unknown }).views ?? null) as AssetManifest["views"],
   basisTranscoderPath: "/basis/r187/",
 };
 

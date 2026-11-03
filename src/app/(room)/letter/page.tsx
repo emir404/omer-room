@@ -1,44 +1,52 @@
+import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
-import { ChapterPanel, Lede, Metrics, Prose, Text } from "@/components/panels/ui";
+import { ChapterPanel, Lede, Metrics, Prose, Section, Text } from "@/components/panels/ui";
 import { getLetterPage } from "@/lib/content/load";
 
 export const metadata: Metadata = { title: "The OpenAI letter" };
 
+/**
+ * The letter is shown exactly as the image is: the original file, at its own proportions, never
+ * resized or recompressed by the site (no next/image). "Open full size" serves the file itself.
+ */
 export default function LetterPage() {
-  const { data, html } = getLetterPage();
+  const page = getLetterPage();
+  const { data, html, letterSize } = page;
   return (
     <ChapterPanel eyebrow="You might know me from this" title={data.title} testId="chapter-letter">
       <Lede>{data.intro}</Lede>
-      <Metrics items={data.metrics} />
-      {data.letter ? (
+      {data.letter && letterSize ? (
         <figure className="letter-figure">
-          <div className="letter-frame">
-            <Image src={data.letter.src} alt={data.letter.alt} fill sizes="(max-width: 768px) 90vw, 420px" />
-          </div>
-          {data.letter.caption ? <figcaption>{data.letter.caption}</figcaption> : null}
+          <a href={data.letter.src} target="_blank" rel="noopener noreferrer" className="letter-image">
+            {/* eslint-disable-next-line @next/next/no-img-element -- 1:1 with the original file */}
+            <img src={data.letter.src} alt={data.letter.alt} width={letterSize.width} height={letterSize.height} />
+          </a>
+          <figcaption>
+            {data.letter.caption ? <Text>{data.letter.caption}</Text> : null}
+            <a href={data.letter.src} target="_blank" rel="noopener noreferrer" className="pill">
+              Open full size
+              <ArrowUpRight size={14} strokeWidth={2} aria-hidden />
+            </a>
+          </figcaption>
         </figure>
       ) : (
-        <div className="gallery-empty">
-          <span aria-hidden="true">✉</span> The letter goes here
-        </div>
+        <p className="gallery-empty">The letter goes here, exactly as it is: add the image in content/letter.md.</p>
       )}
+      <Metrics items={data.metrics} />
       <Prose html={html} />
       {data.reactions.length ? (
-        <section className="section" aria-labelledby="reactions">
-          <h2 id="reactions">How the internet took it</h2>
+        <Section title="How the internet took it" id="reactions">
           <ul className="reactions">
             {data.reactions.map((r) => (
               <li key={r.caption}>
                 {r.image ? (
-                  <div className="gallery-frame">
-                    <Image src={r.image.src} alt={r.image.alt} fill sizes="(max-width: 768px) 90vw, 420px" />
-                  </div>
+                  // eslint-disable-next-line @next/next/no-img-element -- screenshots, shown as they are
+                  <img src={r.image.src} alt={r.image.alt} loading="lazy" />
                 ) : null}
                 <p>
                   {r.url && /^https?:/.test(r.url) ? (
                     <a href={r.url} target="_blank" rel="noopener noreferrer">
-                      {r.caption} ↗
+                      {r.caption}
                     </a>
                   ) : (
                     <Text>{r.caption}</Text>
@@ -47,7 +55,7 @@ export default function LetterPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ) : null}
     </ChapterPanel>
   );

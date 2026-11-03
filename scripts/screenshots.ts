@@ -14,8 +14,9 @@ fs.mkdirSync(out, { recursive: true });
 const ROUTES = (process.env.ONLY?.split(",") ?? [
   "/",
   "/shelf",
+  "/shelf/school",
   "/shelf/economics-olympiad",
-  "/shelf/mundp",
+  "/shelf/zero-to-one",
   "/computer",
   "/computer/arc-studio",
   "/phone",
@@ -24,7 +25,7 @@ const ROUTES = (process.env.ONLY?.split(",") ?? [
   "/window",
   "/letter",
   "/contact",
-  "/map",
+  "/text",
 ]).map((r) => r.trim());
 
 const VIEWPORTS = {
@@ -37,10 +38,11 @@ const args = process.env.PW_GPU
   : ["--use-gl=angle", "--use-angle=swiftshader-webgl", "--enable-unsafe-swiftshader"];
 
 async function settle(page: Page, route: string) {
-  if (route === "/map") return;
+  if (route === "/text") return;
   await page.waitForSelector('html[data-scene="ready"]', { timeout: 60_000 });
   if (route.startsWith("/computer") || route.startsWith("/phone")) {
-    await page.waitForSelector('[data-kind="screen"][data-rest="1"]', { timeout: 30_000 }).catch(() => {});
+    // the live screen docks once the camera is on it (the computer opens as a sheet on phones)
+    await page.waitForSelector('.screen[data-docked="1"], [data-testid^="chapter-computer"]', { timeout: 30_000 }).catch(() => {});
   }
   await page.waitForTimeout(400);
 }

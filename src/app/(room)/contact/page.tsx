@@ -1,40 +1,60 @@
+import { ArrowUpRight, Calendar, Mail } from "lucide-react";
 import type { Metadata } from "next";
-import { ChapterPanel, Lede, Prose, Text } from "@/components/panels/ui";
+import { ChapterPanel, isUrl, Lede, List, Prose, Text } from "@/components/panels/ui";
+import { Row } from "@/components/ui/Row";
 import { getContactPage, getSite } from "@/lib/content/load";
 
 export const metadata: Metadata = { title: "Contact" };
 
-const isTodo = (value: string) => value.startsWith("TODO");
-
 export default function ContactPage() {
   const { data, html } = getContactPage();
   const site = getSite();
+  const hasEmail = !site.email.startsWith("TODO");
   const linkedin = site.socials.find((s) => s.icon === "linkedin");
-  const methods = [
-    { label: "Email", value: site.email, href: `mailto:${site.email}` },
-    ...(linkedin ? [{ label: "LinkedIn", value: linkedin.url, href: linkedin.url }] : []),
-    { label: "Book a call", value: site.calUrl, href: site.calUrl },
-  ];
+  const external = { target: "_blank", rel: "noopener noreferrer" } as const;
 
   return (
     <ChapterPanel eyebrow="Mailbox" title={data.title} testId="chapter-contact">
       <Lede>{data.intro}</Lede>
-      <Prose html={html} />
-      <ul className="contact-methods">
-        {methods.map((m) => (
-          <li key={m.label}>
-            <span className="contact-label">{m.label}</span>
-            {isTodo(m.value) ? (
-              <Text>{m.value}</Text>
-            ) : (
-              <a href={m.href} {...(m.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-                {m.value.replace(/^https?:\/\//, "")}
+      <List label="Ways to reach me">
+        <li>
+          {hasEmail ? (
+            <a className="row-link" href={`mailto:${site.email}`}>
+              <Row lead={<Mail size={16} strokeWidth={2} aria-hidden />} title="Email" subtitle={site.email} />
+            </a>
+          ) : (
+            <Row lead={<Mail size={16} strokeWidth={2} aria-hidden />} title="Email" subtitle={<Text>{site.email}</Text>} />
+          )}
+        </li>
+        {linkedin ? (
+          <li>
+            {isUrl(linkedin.url) ? (
+              <a className="row-link" href={linkedin.url} {...external}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- the official mark */}
+                <Row lead={<img src="/brands/linkedin.svg" alt="" width={16} height={16} />} title="LinkedIn" subtitle={linkedin.url.replace(/^https?:\/\/(www\.)?/, "")}>
+                  <ArrowUpRight className="row-chevron" size={16} strokeWidth={2} aria-hidden />
+                </Row>
               </a>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element -- the official mark
+              <Row lead={<img src="/brands/linkedin.svg" alt="" width={16} height={16} />} title="LinkedIn" subtitle={<Text>{linkedin.url}</Text>} />
             )}
           </li>
-        ))}
-      </ul>
-      <p className="contact-meta">Based in {site.location}.</p>
+        ) : null}
+        <li>
+          {isUrl(site.calUrl) ? (
+            <a className="row-link" href={site.calUrl} {...external}>
+              <Row lead={<Calendar size={16} strokeWidth={2} aria-hidden />} title="Book a call" subtitle={site.calUrl.replace(/^https?:\/\//, "")}>
+                <ArrowUpRight className="row-chevron" size={16} strokeWidth={2} aria-hidden />
+              </Row>
+            </a>
+          ) : (
+            <Row lead={<Calendar size={16} strokeWidth={2} aria-hidden />} title="Book a call" subtitle={<Text>{site.calUrl}</Text>} />
+          )}
+        </li>
+      </List>
+      <Prose html={html} />
+      <p className="sheet-meta">Based in {site.location}.</p>
     </ChapterPanel>
   );
 }

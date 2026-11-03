@@ -1,5 +1,10 @@
 # Brief (consolidated)
 
+> **Update (feedback round, Nov 2026):** no pixel art. The window shows a realistic view (a photo), the
+> computer and phone run real, live UIs on their screens, the shelf's chapters are labeled binders with
+> real book covers next to them, the letter is shown exactly as the image, and the only UI on the page
+> is a 3D/Text switch. Where this brief says "pixel", read "real".
+
 Sources: Ömer's written brief, his two voice notes (TR/EN), his CV (Common App activities), and Emir's
 direction. This is the reference for what the site must do.
 

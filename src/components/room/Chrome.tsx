@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { setSoundEnabled } from "@/lib/sound";
 import { useRoom } from "@/lib/store";
-import { resolveNightness, storeOverride, type TimeOverride } from "@/lib/time-of-day";
+import { resolveNightness } from "@/lib/time-of-day";
 
 /** Renders "TODO(Ömer): …" placeholders highlighted so they're easy to spot on the preview. */
 export function WithTodos({ text }: { text: string }) {
@@ -24,72 +22,16 @@ export function WithTodos({ text }: { text: string }) {
   );
 }
 
-const NEXT: Record<TimeOverride, TimeOverride> = { auto: "day", day: "night", night: "auto" };
-
-export function TopBar({ name, now }: { name: string; now: string }) {
-  const timeOverride = useRoom((s) => s.timeOverride);
-  const nightness = useRoom((s) => s.nightness);
-  const sound = useRoom((s) => s.sound);
-  const icon = timeOverride === "auto" ? (nightness > 0.5 ? "☾" : "☀") : timeOverride === "day" ? "☀" : "☾";
-
-  return (
-    <header className="topbar">
-      <Link href="/" scroll={false} className="brand">
-        {name}
-      </Link>
-      <p className="now" title="What I'm up to">
-        <span className="now-tag">now</span> <WithTodos text={now} />
-      </p>
-      <div className="controls">
-        <button
-          type="button"
-          className="control"
-          data-testid="time-toggle"
-          aria-label={`Lighting: ${timeOverride === "auto" ? "follows your clock" : timeOverride}. Click to change.`}
-          onClick={() => {
-            const next = NEXT[timeOverride];
-            storeOverride(next);
-            useRoom.setState({ timeOverride: next });
-          }}
-        >
-          <span aria-hidden="true">{icon}</span>
-          <span className="control-text">{timeOverride}</span>
-        </button>
-        <button
-          type="button"
-          className="control"
-          aria-pressed={sound}
-          aria-label={sound ? "Sound on. Click to mute." : "Sound off. Click to turn on."}
-          onClick={() => {
-            setSoundEnabled(!sound);
-            useRoom.setState({ sound: !sound });
-          }}
-        >
-          <span aria-hidden="true">{sound ? "♪" : "♪̸"}</span>
-          <span className="control-text">{sound ? "sound" : "muted"}</span>
-        </button>
-        <Link href="/map" className="control" prefetch={false} aria-label="Text version of this site">
-          <span aria-hidden="true">Aa</span>
-          <span className="control-text">text version</span>
-        </Link>
-      </div>
-    </header>
-  );
-}
-
 /** Progress comes from the 3D chunk (LoadProgress in Scene.tsx), so this stays three-free. */
-export function Loader({ name }: { name: string }) {
+export function Loader() {
   const progress = useRoom((s) => s.loadProgress);
   const ready = useRoom((s) => s.sceneReady);
   return (
     <div className="loader" data-done={ready ? "1" : "0"} aria-hidden={ready} role="status" aria-live="polite">
-      <div className="loader-card">
-        <p className="loader-name">{name}</p>
-        <div className="loader-bar">
-          <span style={{ transform: `scaleX(${Math.max(0.04, progress / 100)})` }} />
-        </div>
-        <p className="loader-text">{ready ? "come in" : `walking in… ${Math.round(progress)}%`}</p>
+      <div className="loader-bar" aria-hidden="true">
+        <span style={{ transform: `scaleX(${Math.max(0.04, progress / 100)})` }} />
       </div>
+      <p className="loader-text">{ready ? "Come in" : `Loading the room · ${Math.round(progress)}%`}</p>
     </div>
   );
 }
@@ -111,7 +53,7 @@ export function Toast() {
   );
 }
 
-/** Day/night follows the visitor's clock (or the toggle), easing between states. */
+/** Day/night follows the visitor's clock (or ?time=day|night), easing between states. */
 export function TimeKeeper() {
   const override = useRoom((s) => s.timeOverride);
   const nightness = useRoom((s) => s.nightness);

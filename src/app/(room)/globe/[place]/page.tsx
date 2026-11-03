@@ -21,7 +21,7 @@ export default async function PlacePage({ params }: Props) {
   const entry = getGlobePlaces().find((p) => p.slug === place);
   if (!entry) notFound();
   return (
-    <ChapterPanel eyebrow={[entry.data.country, entry.data.when].filter(Boolean).join(" · ")} title={entry.data.title} closeHref="/globe" testId="chapter-place">
+    <ChapterPanel eyebrow={[entry.data.country, entry.data.when].filter(Boolean).join(" · ")} title={entry.data.title} back={{ href: "/globe", label: "Places" }} testId="chapter-place">
       <Lede>{entry.data.summary}</Lede>
       <Prose html={entry.html} />
       <Gallery images={entry.data.photos} />

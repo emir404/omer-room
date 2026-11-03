@@ -1,8 +1,10 @@
 """obj__shelf — the academic bit. A walnut bookcase on the left wall:
-  row 0  books (slot__book__01..12, clickable spines) + a bookend, a lying stack and a crate
+  row 0  books (slot__book__01..12, clickable spines), a bookend, a face-out cover on a little stand
+         (slot__cover__01) and a crate
   row 1  Model UN: delegate placard, gavel, three photo frames (slot__photo__01..03)
   row 2  olympiad: trophy + five medals on ribbons (gold, 2 silver, 2 bronze) on a peg rail
-  row 3  school: binders, a magazine file, papers, a keepsake box, a little cactus
+  row 3  the chapters: four labeled binders (slot__binder__01..04: School, Olympiad, Model UN, Books —
+         the labels are drawn at runtime from content/shelf.json), a magazine file, papers, a cactus
   top    a trailing pothos and a woven basket
 Spines face +X (into the room). Slot meshes keep their transform; their front face spans UV 0..1."""
 
@@ -100,12 +102,26 @@ def books():
     # bookend
     box("bookend_upright", (0.11, 0.0035, 0.16), loc=(FX - 0.075, y + 0.004, z), mat="brass", bevel=0.0012, anchor=(0, 0, -1))
     box("bookend_foot", (0.11, 0.07, 0.0025), loc=(FX - 0.075, y - 0.032, z), mat="brass", bevel=0.0008, anchor=(0, 0, -1))
-    # lying stack
-    zz = z
-    for k, (w, d, h, col) in enumerate(((0.23, 0.17, 0.035, "#2E4A62"), (0.21, 0.16, 0.028, "#C9A45C"), (0.2, 0.15, 0.032, "#7A2E2E"))):
-        rrect(f"lying_{k}", d, w, h, 0.002, loc=(FX - 0.02 - d / 2, y + 0.16, zz), rot=(0, 0, 4 - k * 5), mat=col, axis="Z", seg=2, bevel=0.0015, anchor=(0, 0, -1))
-        rrect(f"lying_pages_{k}", d - 0.008, w - 0.012, h - 0.006, 0.001, loc=(FX - 0.024 - d / 2, y + 0.16, zz + 0.003), rot=(0, 0, 4 - k * 5), mat="paper_warm", axis="Z", seg=2, bevel=0.0006, anchor=(0, 0, -1))
-        zz += h
+    # a face-out book on a little plate stand (the cover is drawn at runtime: slot__cover__01)
+    cw, ch, ct = 0.158, 0.236, 0.024
+    lean = 11
+    cy0 = y + 0.2
+    R = Matrix.Rotation(-lean * DEG, 4, "Y")  # top tips back toward the wall (−X)
+    base = Vector((FX - 0.07, cy0, z + 0.012))
+
+    def put(ob, local):
+        ob.matrix_world = Matrix.Translation(base + R @ Vector(local)) @ R
+        return ob
+
+    put(box("cover_board", (ct, cw, ch), mat="#C9C2B4", bevel=0.0015, seg=2, anchor=(0, 0, -1)), (0, 0, 0))
+    put(box("cover_pages", (ct - 0.004, cw - 0.006, ch - 0.008), mat="paper_warm", bevel=0.0006, seg=1, anchor=(0, 0, -1)), (-0.0016, 0.004, 0.004))
+    face = plane("cover_face", cw, ch, mat="#D8D2C6", contract="slot__cover__01")
+    face["aspect"] = cw / ch
+    face.matrix_world = Matrix.Translation(base + R @ Vector((ct / 2 + 0.0004, 0, ch / 2))) @ R @ Matrix.Rotation(90 * DEG, 4, "Z")
+    # the stand: a slanted back and a front lip
+    box("cover_stand_back", (0.008, 0.06, 0.17), loc=(FX - 0.07 - ct / 2 - 0.004, cy0, z + 0.012), rot=(0, -lean, 0), mat="walnut_dark", bevel=0.002, anchor=(0, 0, -1))
+    box("cover_stand_base", (0.09, 0.07, 0.012), loc=(FX - 0.08, cy0, z), mat="walnut_dark", bevel=0.002, anchor=(0, 0, -1))
+    box("cover_stand_lip", (0.008, 0.07, 0.022), loc=(FX - 0.07 + ct / 2 + 0.004, cy0, z), mat="walnut_dark", bevel=0.002, anchor=(0, 0, -1))
     # wooden crate with rolled papers
     cy = Y1 - T - 0.14
     frame("crate", 0.22, 0.24, 0.2, 0.22, 0.2, loc=(FX - 0.13, cy, z + 0.2), rot=(-90, 0, 0), mat="oak", r=0.0, ir=0.0, seg=1, back=True, recess=0.19, inner_mat="oak", bevel=0.003)
@@ -203,12 +219,14 @@ def olympiad_row():
 def school_row():
     z = ROWS[3]
     y = Y0 + T + 0.01
-    for i, col in enumerate(("navy", "red", "sage", "mustard", "cream")):
-        w = 0.058
+    # the chapter binders: their spines are content slots (label + color drawn at runtime)
+    for i, col in enumerate(("navy", "red", "sage", "mustard")):
+        w = 0.074
         box(f"binder_{i}", (0.27, w, 0.31), loc=(FX - 0.02 - 0.135, y + w / 2, z), mat=col, bevel=0.004, anchor=(0, 0, -1))
-        box(f"binder_label_{i}", (0.002, 0.036, 0.1), loc=(FX - 0.019, y + w / 2, z + 0.17), mat="paper", bevel=0.0005, seg=1, anchor=(0, 0, -1))
-        torus(f"binder_hole_{i}", 0.009, 0.0022, loc=(FX - 0.019, y + w / 2, z + 0.07), rot=(0, 90, 0), mat="ink", seg=20, ring=6)
-        y += w + 0.002
+        spine = plane(f"binder_spine_{i}", w - 0.004, 0.302, mat=col, contract=f"slot__binder__{i + 1:02d}")
+        spine["aspect"] = (w - 0.004) / 0.302
+        spine.matrix_world = Matrix.Translation((FX - 0.0196, y + w / 2, z + 0.155)) @ Matrix.Rotation(90 * DEG, 4, "Z")
+        y += w + 0.003
     # magazine file with papers
     my = y + 0.06
     bm = bmesh.new()

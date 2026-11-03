@@ -12,14 +12,14 @@ LEFT_X = -2.25  # left wall inner face
 
 DESK = {"x": 0.55, "y": 1.86, "top": 0.77, "w": 1.7, "d": 0.72, "t": 0.038}
 COMPUTER = (0.5, 1.98, 0.77)  # obj__computer origin (on the desk top)
-SCREEN = {"w": 0.40, "h": 0.30, "z": 1.085, "y": 1.8985}  # screen__computer (4:3, matches 640×480)
+SCREEN = {"w": 0.48, "h": 0.30, "z": 1.075, "y": 1.8985}  # screen__computer: 16:10, the live desktop UI is laid out at 16:10
 PHONE = (1.02, 1.74, 0.77)
-PHONE_SCREEN = {"w": 0.075, "h": 0.155}  # matches the 360×744 phone UI
+PHONE_SCREEN = {"w": 0.0706, "h": 0.1535, "r": 0.0097}  # an iPhone screen: 402 × 874 pt, 55 pt corners
 GLOBE = (0.02, 1.86, 0.77)
 GLOBE_R = 0.13
 LAMP = (1.34, 2.04, 0.77)
 TICKER = (-0.12, 1.64, 0.77)
-WINDOW = {"x": 0.5, "z": 1.85, "w": 1.1, "h": 0.82}  # opening on the back wall (farm view is 4:3)
+WINDOW = {"x": 0.5, "z": 1.85, "w": 1.1, "h": 0.82}  # opening on the back wall (the view is a photo behind it)
 LETTER = (-0.78, 2.25, 1.68)
 HOOP_BOARD = (-1.55, 2.25, 2.32)
 HOOP_RIM = (-1.55, 2.0, 2.14)
@@ -44,3 +44,24 @@ CAMS = {
     "contact": ((-0.2, -2.1, 1.5), (-2.08, -1.9, 1.22)),
     "hoop": ((-0.2, -0.9, 1.6), (-1.4, 1.5, 1.2)),
 }
+
+
+def letter_aspect():
+    """Width / height of the framed letter. Read from the image in content/letter.md (`letter.src`), so
+    the frame on the wall fits the real letter 1:1; US Letter (8.5 × 11) until there is one."""
+    import os
+    import re
+
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    try:
+        text = open(os.path.join(root, "content", "letter.md"), encoding="utf8").read()
+        front = text.split("---")[1]
+        src = re.search(r"^letter:\s*\n(?:\s+.*\n)*?\s+src:\s*[\"']?(/content/[^\s\"']+)", front, re.M)
+        if src:
+            import OpenImageIO as oiio
+
+            spec = oiio.ImageInput.open(os.path.join(root, "public", src.group(1).lstrip("/"))).spec()
+            return max(0.45, min(1.6, spec.width / spec.height))
+    except (OSError, IndexError, AttributeError):
+        pass
+    return 8.5 / 11

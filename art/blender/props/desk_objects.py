@@ -8,7 +8,7 @@ from mathutils import Matrix, Vector
 
 from layout import GLOBE, GLOBE_R, LAMP, PHONE, PHONE_SCREEN, TICKER
 from lib.core import DEG, empty, group, tag
-from lib.geo import box, cyl, from_bm, lathe, plane, rrect, sphere, three_sphere, thick_profile, torus, tube
+from lib.geo import box, cyl, from_bm, lathe, plane, rplane, rrect, sphere, three_sphere, thick_profile, torus, tube
 
 TOP = PHONE[2]
 
@@ -17,7 +17,8 @@ def phone():
     x, y, z = PHONE
     # stand: a walnut block with a slanted back and a front lip
     bm = bmesh.new()
-    prof = [(-0.04, 0.0), (0.035, 0.0), (0.035, 0.012), (0.012, 0.09), (-0.004, 0.09), (-0.02, 0.022), (-0.034, 0.022), (-0.034, 0.014), (-0.04, 0.014)]
+    # (y, z): base, a back support leaning 17° (the phone lies flat on its front face), a ledge and a lip
+    prof = [(-0.042, 0.0), (0.035, 0.0), (0.035, 0.012), (0.016, 0.09), (-0.0006, 0.09), (-0.022, 0.02), (-0.036, 0.02), (-0.036, 0.026), (-0.042, 0.026)]
     w = 0.088
     left = [bm.verts.new((-w / 2, yy, zz)) for yy, zz in prof]
     right = [bm.verts.new((w / 2, yy, zz)) for yy, zz in prof]
@@ -28,15 +29,20 @@ def phone():
     bm.faces.new(right)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     from_bm("phone_stand", bm, "walnut", loc=(x, y + 0.012, z), bevel=0.003, seg=2)
-    # the phone leans back on the stand
+    # the phone leans back on the stand: a denim back, black glass front, the screen a hair in front
     tilt = -17
-    pw, ph, pd = PHONE_SCREEN["w"] + 0.0075, PHONE_SCREEN["h"] + 0.011, 0.0086
-    body_loc = Vector((x, y - 0.006, z + 0.016 + ph / 2 * math.cos(tilt * DEG)))
-    body_loc.y += ph / 2 * math.sin(-tilt * DEG)
-    rrect("phone_body", pw, ph, pd, 0.012, loc=body_loc, rot=(tilt, 0, 0), mat="denim", axis="Y", seg=8, bevel=0.0022, bseg=3)
+    sw, sh, sr = PHONE_SCREEN["w"], PHONE_SCREEN["h"], PHONE_SCREEN["r"]
+    pw, ph, pd = sw + 0.0062, sh + 0.0062, 0.0082
+    # the phone's back rests on the support, its bottom edge on the ledge
+    up = Vector((0, math.sin(-tilt * DEG), math.cos(-tilt * DEG)))
+    out = Vector((0, -math.cos(-tilt * DEG), math.sin(-tilt * DEG)))
+    body_loc = Vector((x, y + 0.012 - 0.022, z + 0.02)) + up * (ph / 2) + out * (pd / 2 + 0.0004)
+    rrect("phone_body", pw, ph, pd, sr + 0.003, loc=body_loc, rot=(tilt, 0, 0), mat="denim", axis="Y", seg=8, bevel=0.0022, bseg=3)
     rot = Matrix.Rotation(tilt * DEG, 4, "X")
-    front = body_loc + (rot @ Vector((0, -pd / 2 - 0.0004, 0)))
-    plane("phone_screen", PHONE_SCREEN["w"], PHONE_SCREEN["h"], loc=front, rot=(tilt, 0, 0), mat="screen_off", contract="screen__phone", bake="none")
+    glass = body_loc + (rot @ Vector((0, -pd / 2 - 0.0003, 0)))
+    rrect("phone_glass", pw - 0.0012, ph - 0.0012, 0.0006, sr + 0.0024, loc=glass, rot=(tilt, 0, 0), mat="screen_off", axis="Y", seg=8, bevel=0.0002, bseg=1)
+    front = body_loc + (rot @ Vector((0, -pd / 2 - 0.0009, 0)))
+    rplane("phone_screen", sw, sh, sr, loc=front, rot=(tilt, 0, 0), mat="screen_off", seg=8, contract="screen__phone", bake="none")
     back = body_loc + (rot @ Vector((pw / 2 - 0.02, pd / 2, ph / 2 - 0.022)))
     rrect("phone_camera", 0.026, 0.026, 0.002, 0.007, loc=back, rot=(tilt, 0, 0), mat="graphite", axis="Y", seg=5, bevel=0.0006)
     for k, dz in enumerate((0.035, 0.012)):
@@ -76,7 +82,7 @@ def globe():
     local(mer, (0, 0, center_h), (90 + tilt, 0, 0))
     mer.rotation_euler = (math.radians(tilt), math.radians(-100), math.radians(90))
     # the sphere spins with the pivot (realtime-lit: a baked lightmap would rotate with it)
-    ball = three_sphere("globe_sphere", R, mat="globe_map", ws=64, hs=32, pivot="globe", dynamic=True, bake="none")
+    ball = three_sphere("globe_sphere", R, mat="#6FA3B5", ws=96, hs=48, pivot="globe", dynamic=True, bake="none")
     ball.parent = pivot
     ball.matrix_parent_inverse = Matrix.Identity(4)
     ball.location = (0, 0, 0)

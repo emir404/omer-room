@@ -2,20 +2,39 @@
 
 import dynamic from "next/dynamic";
 import { Component, type ReactNode, useEffect } from "react";
-import type { SceneData } from "@/lib/content/scene-data";
+import { ModeToggle } from "@/components/ModeToggle";
 import { PanelHost } from "@/components/panels/PanelHost";
-import { prefersReducedMotion, isTouchDevice } from "@/lib/quality";
+import type { SceneData } from "@/lib/content/scene-data";
+import { isTouchDevice, prefersReducedMotion } from "@/lib/quality";
 import { readStoredSound, setSoundEnabled } from "@/lib/sound";
 import { useRoom } from "@/lib/store";
 import { overrideFromSearch, readStoredOverride } from "@/lib/time-of-day";
 import { initialMode, setDocumentMode } from "@/lib/webgl";
-import { Loader, TimeKeeper, Toast, TopBar } from "./Chrome";
-import { DocNav } from "./DocNav";
+import { Loader, TimeKeeper, Toast } from "./Chrome";
 import { Hotspots } from "./Hotspots";
 import { RouteSync } from "./RouteSync";
 
-// The 3D chunk (three + R3F + drei) loads after the page is already readable.
+/** Text-view sections for each chapter (doc mode shows the whole site as one page). */
+const SECTION: Record<string, string> = { shelf: "school", computer: "work", phone: "side-quests", globe: "places", window: "kozan", letter: "letter", contact: "contact" };
+
+/** Doc mode on a chapter URL: open that item (or section) in the text view and scroll to it. */
+function DocAnchor() {
+  const mode = useRoom((s) => s.mode);
+  const chapter = useRoom((s) => s.chapter);
+  const item = useRoom((s) => s.item);
+  useEffect(() => {
+    if (mode !== "doc" || !chapter) return;
+    const target = (item && document.getElementById(item)) || document.getElementById(SECTION[chapter] ?? "");
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    target?.scrollIntoView({ block: "start" });
+  }, [mode, chapter, item]);
+  return null;
+}
+
+// The 3D chunk (three + R3F + drei) loads after the page is already readable; so do the live
+// screen UIs, which only exist in the room.
 const RoomCanvas = dynamic(() => import("./RoomCanvas"), { ssr: false });
+const ScreenLayer = dynamic(() => import("@/components/screens/ScreenLayer").then((m) => m.ScreenLayer), { ssr: false });
 
 function fallBackToText() {
   setDocumentMode("doc");
@@ -38,7 +57,12 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 
-export function RoomShell({ data, children }: { data: SceneData; children: ReactNode }) {
+/**
+ * The room: the canvas, the live screens behind it, the object buttons/pins and the chapter panels,
+ * plus the one control on the page (3D ↔ text). Without WebGL or JavaScript, `text` (the whole
+ * site as one page, server-rendered) is what shows instead.
+ */
+export function RoomShell({ data, text, children }: { data: SceneData; text: ReactNode; children: ReactNode }) {
   const mode = useRoom((s) => s.mode);
 
   useEffect(() => {
@@ -67,21 +91,23 @@ export function RoomShell({ data, children }: { data: SceneData; children: React
 
   return (
     <div className="room-root">
-      <TopBar name={data.name} now={data.now} />
+      <ModeToggle current="room" />
       {mode === "room" ? (
         <>
+          <ScreenLayer data={data} />
           <div className="stage" aria-hidden="true" data-testid="stage">
             <SceneBoundary>
               <RoomCanvas data={data} />
             </SceneBoundary>
           </div>
           <Hotspots objects={data.objects} />
-          <Loader name={data.name} />
+          <Loader />
         </>
       ) : null}
       <RouteSync />
+      <DocAnchor />
       <TimeKeeper />
-      <DocNav objects={data.objects} />
+      <div className="when-doc">{text}</div>
       <PanelHost>{children}</PanelHost>
       <Toast />
     </div>

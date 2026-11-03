@@ -12,6 +12,7 @@ import {
   type MeshStandardMaterial,
   type Object3D,
   type Texture,
+  Vector3,
   type WebGLRenderer,
   WebGLCubeRenderTarget,
 } from "three";
@@ -33,6 +34,7 @@ const SHELL = /^decor__(floor|wall|rug|baseboard)/;
 function prepare(scene: Object3D, lightmaps: Map<string, LightmapBinding>, envMap: CubeTexture | null): SceneIndex {
   const index = buildSceneIndex(scene);
   index.lightmaps = lightmaps;
+  index.envMap = envMap;
   const baked = lightmaps.size > 0;
   scene.traverse((node) => {
     const mesh = node as Mesh;
@@ -76,25 +78,63 @@ type Target =
   | { kind: "object"; id: ObjectId }
   | { kind: "sub"; key: string; label: string; href: string; mesh: Mesh };
 
-/** Objects whose insides become clickable once the camera is on them. */
+/** Objects whose insides become clickable once the camera is on them (spines, binders, pins). */
 const HAS_SUBTARGETS: readonly ObjectId[] = ["shelf", "globe"];
 
+const volumes = new WeakMap<Mesh, number>();
+/** World-space volume of an object's click proxy (cached). */
+function hitVolume(index: SceneIndex, id: ObjectId): number {
+  const hit = index.hits.get(id);
+  if (!hit) return Number.POSITIVE_INFINITY;
+  let v = volumes.get(hit);
+  if (v === undefined) {
+    hit.geometry.computeBoundingBox();
+    const size = hit.geometry.boundingBox!.getSize(new Vector3()).multiply(hit.getWorldScale(new Vector3()));
+    v = Math.abs(size.x * size.y * size.z);
+    volumes.set(hit, v);
+  }
+  return v;
+}
+
+/**
+ * What the pointer is on. Click proxies (hit boxes) overlap on a crowded desk — the computer's
+ * reaches toward the phone — so among the proxies a ray passes through, the smallest wins (it's
+ * the more specific object), unless a real part of an object is hit first. Walls and furniture
+ * block whatever is behind them. On a focused shelf or globe, the spines, binders and pins inside
+ * become targets of their own.
+ */
 function resolveTarget(index: SceneIndex, intersections: Intersection[]): Target | null {
   const { focus } = useRoom.getState();
+  let best: ObjectId | null = null;
+  const pick = (id: ObjectId) => {
+    if (!best || hitVolume(index, id) < hitVolume(index, best)) best = id;
+  };
   for (const { object } of intersections) {
-    // Spines and globe pins carry userData.sub; runtime pins are registered in ownerOf by Globe.
+    // Spines, binders and globe pins carry userData.sub; runtime pins are registered in ownerOf.
     const owner = index.ownerOf.get(object);
     const sub = object.userData.sub as { key: string; label: string; href: string } | undefined;
     if (sub && owner === focus) return { kind: "sub", ...sub, mesh: object as Mesh };
 
     const parsed = parseNodeName(object.name);
-    const id = parsed?.kind === "hit" ? (parsed.id as ObjectId) : owner;
-    if (!id) return null; // walls, furniture: they block what's behind them
-    if (id !== focus) return { kind: "object", id };
-    if (!HAS_SUBTARGETS.includes(id)) return null; // already looking at it
-    // focused shelf/globe: look past its proxy and frame for a spine or pin
+    if (parsed?.kind === "hit") {
+      const id = parsed.id as ObjectId;
+      if (id === focus) {
+        // already looking at it: look past its proxy for a spine or a pin
+        if (HAS_SUBTARGETS.includes(id)) continue;
+        break;
+      }
+      pick(id);
+      continue;
+    }
+    if (!owner) break; // walls, furniture: they block what's behind them
+    if (owner === focus) {
+      if (HAS_SUBTARGETS.includes(owner)) continue;
+      break;
+    }
+    pick(owner);
+    break;
   }
-  return null;
+  return best ? { kind: "object", id: best } : null;
 }
 
 /** Lightmap URLs for this device: [day, mask] per bake set. */

@@ -1,6 +1,7 @@
 import { chapterHref, objectHref } from "../routes";
 import type { ObjectId } from "../scene-contract";
-import { getBooks, getComputerApps, getGlobePlaces, getLetterPage, getObjects, getPhoneApps, getShelfItems, getSite } from "./load";
+import { getBooks, getComputerApps, getGlobePlaces, getLetterPage, getObjects, getPhoneApps, getShelfItems, getShelfMeta, getSite, getWindowPage } from "./load";
+import type { ContentImage, ContentLink, Metric, ShelfId, Site } from "./schemas";
 
 /**
  * The serializable slice of content the 3D scene needs (labels, spines, pins, screen icons).
@@ -23,6 +24,34 @@ export interface SceneBook {
   color: string;
   text: string;
   href: string;
+  /** The real cover, if there is one (the spine color comes from it at runtime). */
+  cover: string | null;
+  featured: boolean;
+}
+
+/** A labeled binder on the shelf: opens /shelf/<id>. */
+export interface SceneBinder {
+  id: ShelfId;
+  label: string;
+  title: string;
+  count: number;
+  href: string;
+}
+
+/** Everything a screen app shows (the live desktop and phone UIs render it). */
+export interface ScreenApp {
+  slug: string;
+  title: string;
+  subtitle?: string;
+  role?: string;
+  period?: string;
+  summary: string;
+  metrics: Metric[];
+  html: string;
+  images: ContentImage[];
+  links: ContentLink[];
+  cta?: { label: string; href: string };
+  href: string;
 }
 
 export interface ScenePlace {
@@ -33,26 +62,25 @@ export interface ScenePlace {
   href: string;
 }
 
-export interface SceneScreenApp {
-  key: string;
-  title: string;
-  icon: string;
-  /** Internal route, external URL, or null for a placeholder that isn't wired yet. */
-  href: string | null;
-  external: boolean;
-}
 
 export interface SceneData {
   name: string;
   firstName: string;
+  tagline: string;
   now: string;
+  location: string;
+  email: string;
+  socials: Site["socials"];
   objects: SceneObject[];
   books: SceneBook[];
+  binders: SceneBinder[];
   photos: { src: string; alt: string }[];
   places: ScenePlace[];
-  osApps: SceneScreenApp[];
-  phoneApps: SceneScreenApp[];
-  letterImage: string | null;
+  computer: ScreenApp[];
+  phone: ScreenApp[];
+  letter: { src: string; alt: string; width: number; height: number } | null;
+  /** A photo from content/window.md that replaces the default view out of the window. */
+  windowView: { src: string; fov: number; horizon: number } | null;
   hoop: { swish: string; miss: string[] };
 }
 
@@ -65,18 +93,24 @@ function textOn(hex: string): string {
   return luminance > 0.6 ? "#1E1B16" : "#F4EEE3";
 }
 
-const isUrl = (value: string) => /^https?:\/\//.test(value);
 
 export function getSceneData(): SceneData {
   const site = getSite();
   const letter = getLetterPage();
+  const windowPage = getWindowPage();
+  const items = getShelfItems();
+  const books = getBooks();
 
   return {
     name: site.name,
     firstName: site.firstName,
+    tagline: site.tagline,
     now: site.now,
+    location: site.location,
+    email: site.email,
+    socials: site.socials,
     objects: getObjects().map((o) => ({ ...o, href: objectHref(o.id) })),
-    books: getBooks().map((b, i) => {
+    books: books.map((b, i) => {
       const color = b.data.spine?.color ?? SPINES[i % SPINES.length]!;
       return {
         slug: b.slug,
@@ -87,9 +121,18 @@ export function getSceneData(): SceneData {
         color,
         text: b.data.spine?.text ?? textOn(color),
         href: chapterHref("shelf", b.slug),
+        cover: b.data.cover?.src ?? null,
+        featured: b.data.featured,
       };
     }),
-    photos: getShelfItems()
+    binders: getShelfMeta().shelves.map((shelf) => ({
+      id: shelf.id,
+      label: shelf.label,
+      title: shelf.title,
+      count: shelf.id === "books" ? books.length : items.filter((i) => i.data.shelf === shelf.id).length,
+      href: chapterHref("shelf", shelf.id),
+    })),
+    photos: items
       .filter((item) => item.data.shelf === "mun")
       .flatMap((item) => item.data.images.map((img) => ({ src: img.src, alt: img.alt }))),
     places: getGlobePlaces().map((p) => ({
@@ -99,30 +142,32 @@ export function getSceneData(): SceneData {
       lng: p.data.lng,
       href: chapterHref("globe", p.slug),
     })),
-    osApps: getComputerApps().map((app) => ({
-      key: app.slug,
+    computer: getComputerApps().map((app) => ({
+      slug: app.slug,
       title: app.data.title,
-      icon: app.data.icon,
+      role: app.data.role,
+      period: app.data.period,
+      summary: app.data.summary,
+      metrics: app.data.metrics,
+      html: app.html,
+      images: app.data.images,
+      links: app.data.links,
       href: chapterHref("computer", app.slug),
-      external: false,
     })),
-    phoneApps: [
-      ...getPhoneApps().map((app) => ({
-        key: app.slug,
-        title: app.data.title,
-        icon: app.data.icon,
-        href: chapterHref("phone", app.slug),
-        external: false,
-      })),
-      ...site.socials.map((s) => ({
-        key: s.id,
-        title: s.label,
-        icon: s.icon,
-        href: isUrl(s.url) ? s.url : null,
-        external: true,
-      })),
-    ],
-    letterImage: letter.data.letter?.src ?? null,
+    phone: getPhoneApps().map((app) => ({
+      slug: app.slug,
+      title: app.data.title,
+      ...(app.data.subtitle ? { subtitle: app.data.subtitle } : {}),
+      summary: app.data.summary,
+      metrics: app.data.metrics,
+      html: app.html,
+      images: app.data.images,
+      links: app.data.links,
+      ...(app.data.cta ? { cta: app.data.cta } : {}),
+      href: chapterHref("phone", app.slug),
+    })),
+    letter: letter.data.letter && letter.letterSize ? { src: letter.data.letter.src, alt: letter.data.letter.alt, ...letter.letterSize } : null,
+    windowView: windowPage.data.view ?? null,
     hoop: site.hoop,
   };
 }

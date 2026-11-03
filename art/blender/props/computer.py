@@ -1,6 +1,7 @@
-"""obj__computer — a retro-modern 4:3 monitor (cream plastic, deep back, chunky chin), a 60%
-keyboard with real keycaps, a pebble mouse, a felt desk mat and the cables.
-The screen quad (screen__computer) is exactly 0.52 × 0.39 m so the 640×480 ÖmerOS UI sits on it."""
+"""obj__computer — a slim 16:10 display on a cream stand (the live desktop UI sits on its screen),
+a 60% keyboard with real keycaps, a pebble mouse, a felt desk mat and the cables.
+The screen quad (screen__computer) is SCREEN["w"] × SCREEN["h"]; the site lays its DOM desktop out at
+the same 16:10 and maps it onto the quad (src/components/room/ScreenProjector.tsx)."""
 
 import math
 
@@ -16,58 +17,37 @@ U = 0.0186  # key pitch
 
 
 def monitor():
+    """A thin display: black glass around the picture, a cream body with an iMac-style chin, and an
+    angled arm on a flat foot. Returns the body's lowest z (for the cable)."""
     x0, _, top = COMPUTER
-    glass_y = SCREEN["y"] + 0.0006
-    front_y = glass_y - 0.009
-    bw, bh = 0.48, 0.438
-    chin = 0.078
-    top_margin = 0.04  # bezel above the glass; the rest of the height becomes the chin
-    bz = SCREEN["z"] + SCREEN["h"] / 2 + top_margin - bh / 2
-    opening = (SCREEN["w"] + 0.018, SCREEN["h"] + 0.018)
-    ioff_z = SCREEN["z"] - bz
-
-    frame("bezel", bw, bh, opening[0], opening[1], 0.032, loc=(x0, front_y, bz), mat="cream", r=0.034, ir=0.01, seg=8,
-          recess=0.009, inner_mat="screen_off", ioff=(0, ioff_z), bevel=0.0035)
-    # the screen itself (DOM host): a hair in front of the dark glass
-    plane("screen", SCREEN["w"], SCREEN["h"], loc=(x0, SCREEN["y"], SCREEN["z"]), mat="screen_off",
-          contract="screen__computer", bake="none", own="computer")
-
-    # deep, tapered back shell
-    by = front_y + 0.032
-    loft("housing", [
-        (bw - 0.014, bh - 0.014, 0.03, 0.0),
-        (bw - 0.024, bh - 0.024, 0.04, 0.03),
-        (bw - 0.085, bh - 0.08, 0.07, 0.13),
-        (bw - 0.165, bh - 0.15, 0.065, 0.2),
-        (bw - 0.19, bh - 0.175, 0.05, 0.218),
-    ], loc=(x0, by, bz + 0.008), mat="cream_dark", seg=8)
-
-    # chin details: badge, knobs, power LED
-    chin_z = bz - bh / 2 + chin * 0.48
-    text("badge", "ÖmerOS", 0.0125, loc=(x0, front_y - 0.0004, chin_z), rot=(90, 0, 0), mat="graphite", extrude=0.0005)
-    for i, dx in enumerate((0.155, 0.175)):
-        cyl(f"knob_{i}", 0.0052, 0.004, loc=(x0 + dx, front_y, chin_z), rot=(90, 0, 0), mat="cream_dark", seg=20, bevel=0.0012, anchor_bottom=True)
-    cyl("led", 0.0028, 0.002, loc=(x0 + 0.198, front_y, chin_z), rot=(90, 0, 0), mat="led_green", seg=16, bevel=0.0006, bake="none", glow="monitor")
-    for i in range(5):
-        box(f"grille_{i}", (0.04, 0.0016, 0.0022), loc=(x0 - 0.175, front_y - 0.0002, chin_z + 0.01 - i * 0.005), mat="graphite", bevel=0.0006, seg=1)
-
-    # neck + tilt-swivel foot
-    loft("neck", [
-        (0.11, 0.045, 0.018, 0.0),
-        (0.09, 0.04, 0.016, 0.1),
-        (0.085, 0.04, 0.016, 0.2),
-    ], loc=(x0, by + 0.085, top + 0.012), rot=(0, 0, 0), mat="cream_dark", axis="Z", seg=6)
-    lathe("foot", [(0.0, 0.0), (0.112, 0.0), (0.116, 0.004), (0.114, 0.012), (0.095, 0.018), (0.055, 0.02), (0.0, 0.021)],
-          loc=(x0, by + 0.075, top), mat="cream", seg=56)
-
-    # sticky notes on the bezel
-    for i, (dx, dz, ang, col) in enumerate(((0.215, 0.165, 8, "yellow"), (0.228, 0.1, -6, "pink"))):
-        note = plane(f"note_{i}", 0.055, 0.055, loc=(x0 + dx, front_y - 0.0015 - i * 0.0004, bz + dz), rot=(0, ang, 0), mat=col)
-        sd = note.modifiers.new("curl", "SIMPLE_DEFORM")
-        sd.deform_method = "BEND"
-        sd.deform_axis = "X"
-        sd.angle = -18 * DEG
-    return bz
+    sw, sh, sz = SCREEN["w"], SCREEN["h"], SCREEN["z"]
+    glass_y = SCREEN["y"] + 0.0007  # the black glass sits a hair behind the picture
+    border = 0.0085
+    chin = 0.036
+    gw, gh = sw + 2 * border, sh + 2 * border
+    bw = gw + 0.008
+    body_top = sz + gh / 2 + 0.004
+    bh = gh + chin + 0.008
+    body_z = body_top - bh / 2
+    body_d = 0.024
+    body_y = glass_y + 0.0012 + body_d / 2
+    rrect("display_body", bw, bh, body_d, 0.013, loc=(x0, body_y, body_z), mat="cream", axis="Y", seg=8, bevel=0.0025, bseg=2)
+    rrect("display_glass", gw, gh, 0.0016, 0.007, loc=(x0, glass_y + 0.0003, sz), mat="screen_off", axis="Y", seg=6, bevel=0.0005, bseg=1)
+    # the picture itself (the DOM desktop is mapped onto it); hidden from the bake, cut out at runtime
+    plane("screen", sw, sh, loc=(x0, SCREEN["y"], sz), mat="screen_off", contract="screen__computer", bake="none", own="computer")
+    # a small LED in the chin, glowing with the monitor at night
+    cyl("led", 0.0022, 0.0015, loc=(x0, body_y - body_d / 2 - 0.0002, body_z - bh / 2 + chin * 0.45), rot=(90, 0, 0), mat="led_green", seg=12, bevel=0.0005,
+        bake="none", glow="monitor", anchor_bottom=True)
+    # stand: a flat foot and an arm leaning back to the body
+    foot_y = body_y + 0.075
+    rrect("stand_foot", 0.19, 0.15, 0.007, 0.03, loc=(x0, foot_y, top), mat="cream", axis="Z", seg=8, bevel=0.0018, bseg=2, anchor=(0, 0, -1))
+    a = Vector((x0, foot_y + 0.035, top + 0.006))
+    b = Vector((x0, body_y + body_d / 2 - 0.004, body_z + 0.02))
+    d = b - a
+    angle = math.atan2(-d.y, d.z)
+    box("stand_arm", (0.1, 0.014, d.length), loc=(a + b) / 2, rot=(math.degrees(angle), 0, 0), mat="cream", bevel=0.003, seg=2)
+    box("stand_hinge", (0.104, 0.024, 0.03), loc=b + Vector((0, 0.004, 0)), mat="cream_dark", bevel=0.004, seg=2)
+    return body_z - bh / 2, body_top
 
 
 def keyboard():
@@ -131,14 +111,25 @@ def mouse_and_mat():
 
 def cables(bz):
     x0, _, top = COMPUTER
-    # monitor power + video, down the back of the desk to the floor
-    tube("monitor_cable", [(x0 + 0.04, 2.1, bz - 0.05), (x0 + 0.06, 2.16, top + 0.04), (x0 + 0.08, 2.2, top - 0.05),
+    # monitor power + video, from the stand's hinge down the back of the desk to the floor
+    tube("monitor_cable", [(x0 + 0.02, 1.95, bz + 0.03), (x0 + 0.05, 2.06, top + 0.03), (x0 + 0.08, 2.2, top - 0.05),
                            (x0 + 0.1, 2.21, 0.35), (x0 + 0.14, 2.2, 0.03), (x0 + 0.4, 2.17, 0.012), (x0 + 0.75, 2.2, 0.012)], 0.0035, mat="ink", res=12)
+
+
+def hit_box(lo, hi):
+    """The computer's click proxy: monitor, keyboard and mouse only. The default box (bounds of every
+    part) would include the desk mat and the floor cable, and swallow the phone next to it."""
+    lo, hi = Vector(lo), Vector(hi)
+    hit = box("hit_computer", tuple(hi - lo), loc=(lo + hi) / 2, mat="#ff00ff", bevel=0, contract="hit__computer", own="computer")
+    hit.modifiers.clear()
+    return hit
 
 
 def build():
     with group("computer", own="computer", bake="props"):
-        bz = monitor()
+        bz, body_top = monitor()
         keyboard()
         mouse_and_mat()
         cables(bz)
+    x0, _, top = COMPUTER
+    hit_box((x0 - SCREEN["w"] / 2 - 0.03, 1.5, top), (x0 + 0.33, 2.06, body_top + 0.012))

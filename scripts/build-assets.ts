@@ -4,6 +4,7 @@
  *   art/out/room.glb             → public/3d/room.<hash>.glb   (dedup → prune(keepLeaves) → WebP ≤1K →
  *                                                                 meshopt, 14-bit positions + UVs)
  *   art/out/lightmaps/*_<px>.png → public/3d/lm/<name>.<hash>.ktx2 (UASTC + Zstandard, mipmaps)
+ *   art/out/views/*.png          → public/3d/views/<name>.<tier>.<hash>.webp (window photo, globe map)
  *   + src/lib/assets.manifest.json (URLs, tiers, lightmap scales) — read by src/lib/assets.ts
  *
  * Never uses gltf-transform's `optimize` defaults: they join/flatten nodes, drop empties and quantize
@@ -25,6 +26,13 @@ const ROOT = process.cwd();
 const ART = path.join(ROOT, "art", "out");
 const PUB = path.join(ROOT, "public", "3d");
 const LM_PUB = path.join(PUB, "lm");
+const VIEWS_PUB = path.join(PUB, "views");
+
+/** Runtime pictures that aren't baked: per-tier width and WebP quality. */
+const VIEWS = {
+  window: { file: "window_view.png", desktop: [2048, 78], mobile: [1024, 72] },
+  globe: { file: "globe_map.png", desktop: [2048, 84], mobile: [1024, 80] },
+} as const;
 const MANIFEST = path.join(ROOT, "src", "lib", "assets.manifest.json");
 
 const hash = (buf: Buffer) => crypto.createHash("sha256").update(buf).digest("hex").slice(0, 10);
@@ -82,6 +90,8 @@ async function buildRoom(): Promise<string> {
     prune({ keepLeaves: true, keepAttributes: true, keepExtras: true }),
     weld(),
     textureCompress({ encoder: sharp, targetFormat: "webp", quality: 88, resize: [1024, 1024] }),
+    // the cork board is small on screen and its noise compresses badly
+    textureCompress({ encoder: sharp, targetFormat: "webp", quality: 82, resize: [256, 256], pattern: /cork/ }),
     meshopt({ encoder: MeshoptEncoder, level: "medium", quantizePosition: 14, quantizeTexcoord: 14, quantizeNormal: 10 }),
   );
   const glb = Buffer.from(await io.writeBinary(doc));
@@ -107,9 +117,28 @@ function encodeKtx2(src: string, kind: "rgbm" | "srgb"): string {
   return `/3d/lm/${name}`;
 }
 
+async function encodeViews(): Promise<Record<string, Record<string, string>>> {
+  const out: Record<string, Record<string, string>> = {};
+  for (const [name, spec] of Object.entries(VIEWS)) {
+    const src = path.join(ART, "views", spec.file);
+    out[name] = {};
+    for (const tier of ["desktop", "mobile"] as const) {
+      const [width, quality] = spec[tier];
+      const buf = await sharp(src).resize({ width, kernel: "lanczos3" }).webp({ quality, effort: 6, smartSubsample: true }).toBuffer();
+      const file = `${name}.${tier}.${hash(buf)}.webp`;
+      fs.writeFileSync(path.join(VIEWS_PUB, file), buf);
+      console.log(`✓ views/${file} ${kb(buf.length)}`);
+      out[name][tier] = `/3d/views/${file}`;
+    }
+  }
+  return out;
+}
+
 async function main() {
   fs.mkdirSync(LM_PUB, { recursive: true });
-  const before = new Set([...fs.readdirSync(PUB).map((f) => `/3d/${f}`), ...fs.readdirSync(LM_PUB).map((f) => `/3d/lm/${f}`)]);
+  fs.mkdirSync(VIEWS_PUB, { recursive: true });
+  const list = (dir: string, prefix: string) => fs.readdirSync(dir).map((f) => `${prefix}/${f}`);
+  const before = new Set([...list(PUB, "/3d"), ...list(LM_PUB, "/3d/lm"), ...list(VIEWS_PUB, "/3d/views")]);
   const room = await buildRoom();
   const bake = JSON.parse(fs.readFileSync(path.join(ART, "lightmaps", "lightmaps.json"), "utf8")) as BakeManifest;
   const lightmaps: Record<string, Record<string, unknown>> = {};
@@ -129,13 +158,14 @@ async function main() {
       };
     }
   }
-  const version = hash(Buffer.from(JSON.stringify({ room, lightmaps })));
-  const manifest = { version, room, rgbmRange: bake.rgbmRange, lightmaps };
+  const views = await encodeViews();
+  const version = hash(Buffer.from(JSON.stringify({ room, lightmaps, views })));
+  const manifest = { version, room, rgbmRange: bake.rgbmRange, lightmaps, views };
   fs.writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`✓ ${path.relative(ROOT, MANIFEST)} (version ${version})`);
 
   // remove files the new manifest no longer references (keeps public/3d from growing)
-  const keep = new Set([room, ...cache.values(), "/3d/lm", "/3d/blockout.glb"]);
+  const keep = new Set([room, ...cache.values(), ...Object.values(views).flatMap((v) => Object.values(v)), "/3d/lm", "/3d/views", "/3d/blockout.glb"]);
   for (const url of before) {
     if (keep.has(url)) continue;
     const file = path.join(ROOT, "public", url);

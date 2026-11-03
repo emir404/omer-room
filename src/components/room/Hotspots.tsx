@@ -9,7 +9,7 @@ import { overlay, pinElements } from "./registry";
  * One DOM layer that is three things at once:
  *  - keyboard access: a tab-ordered button per object (focus = highlight + label, Enter = open)
  *  - touch pins: always-visible labels on phones, ≥44px targets
- *  - the hover selection box (corner brackets + label) for the pointer
+ *  - the hover label for the pointer (a small tooltip above what you're pointing at)
  * Positions are written every frame by <Projector/>.
  */
 export function Hotspots({ objects }: { objects: SceneObject[] }) {
@@ -75,10 +75,6 @@ export function Hotspots({ objects }: { objects: SceneObject[] }) {
           overlay.selection = el;
         }}
       >
-        <i className="corner tl" />
-        <i className="corner tr" />
-        <i className="corner bl" />
-        <i className="corner br" />
         {label ? <span className="selection-label">{label}</span> : null}
       </div>
     </div>

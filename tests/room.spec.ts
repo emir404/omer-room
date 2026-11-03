@@ -1,21 +1,36 @@
 import { expect, test } from "@playwright/test";
 import { objectCenter, sceneReady } from "./helpers";
 
-test("overview: the 3D room loads and the loader steps aside", async ({ page }) => {
+test("overview: the 3D room loads, the loader steps aside, the switch is the only UI", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/?test=1");
   await sceneReady(page);
   await expect(page.locator("html")).toHaveAttribute("data-mode", "room");
   await expect(page.locator(".loader")).toHaveAttribute("data-done", "1");
-  await expect(page.getByTestId("intro")).toBeVisible();
+  await expect(page.getByTestId("intro")).toBeAttached();
+  await expect(page.getByRole("navigation", { name: "View" })).toBeVisible();
+  await expect(page.locator(".topbar")).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+test("the computer and phone screens are live in the room", async ({ page }) => {
+  await page.goto("/?test=1");
+  await sceneReady(page);
+  const computer = page.locator('.screen[data-screen="computer"]');
+  const phone = page.locator('.screen[data-screen="phone"]');
+  await expect(computer).toHaveCSS("visibility", "visible");
+  await expect(phone).toHaveCSS("visibility", "visible");
+  await expect(computer.getByTestId("omer-os")).toContainText("Arc Studio");
+  // not interactive until you go to them
+  await expect(computer).toHaveAttribute("data-docked", "0");
 });
 
 const CHAPTERS: [string, string][] = [
   ["/shelf", "chapter-shelf"],
+  ["/shelf/school", "chapter-binder"],
   ["/shelf/economics-olympiad", "chapter-shelf-item"],
-  ["/computer", "omer-os"],
+  ["/shelf/zero-to-one", "chapter-book"],
   ["/phone", "phone-ui"],
   ["/globe", "chapter-globe"],
   ["/window", "chapter-window"],
@@ -31,12 +46,41 @@ for (const [route, testId] of CHAPTERS) {
   });
 }
 
-test("deep link to a computer app: camera rests on the screen, then the OS appears on it", async ({ page }) => {
+test("deep link to a computer app: the desktop docks (desktop) or opens as a sheet (phone)", async ({ page, isMobile }) => {
   await page.goto("/computer/arc-studio?test=1");
   await sceneReady(page);
-  const host = page.locator('[data-kind="screen"]');
-  await expect(host).toHaveAttribute("data-rest", "1");
-  await expect(page.getByTestId("omer-os").getByRole("heading", { name: "Arc Studio" })).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByTestId("chapter-computer-app").getByRole("heading", { level: 1, name: "Arc Studio" })).toBeVisible();
+    return;
+  }
+  const screen = page.locator('.screen[data-screen="computer"]');
+  await expect(screen).toHaveAttribute("data-docked", "1");
+  await expect(screen.locator(".ss-window__heading")).toHaveText("Arc Studio");
+  // the sidebar switches apps in place, and the red light steps back into the room
+  await screen.getByRole("link", { name: "e2vc" }).click();
+  await expect(page).toHaveURL(/\/computer\/e2vc$/);
+  await expect(screen.locator(".ss-window__heading")).toHaveText("e2vc");
+  await screen.getByRole("link", { name: /Close, step back/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(screen).toHaveAttribute("data-docked", "0");
+});
+
+test("the phone opens from the room and its apps open on it", async ({ page, isMobile }) => {
+  await page.goto("/?test=1");
+  await sceneReady(page);
+  if (isMobile) {
+    await page.getByTestId("pin-phone").tap();
+  } else {
+    // the computer's click proxy used to swallow the phone next to it
+    const phone = await objectCenter(page, "phone");
+    await page.mouse.click(phone.x, phone.y);
+  }
+  await expect(page).toHaveURL(/\/phone$/);
+  const screen = page.locator('.screen[data-screen="phone"]');
+  await expect(screen).toHaveAttribute("data-docked", "1");
+  await screen.getByRole("link", { name: /Bana Paradan Bahset/ }).click();
+  await expect(page).toHaveURL(/\/phone\/talk-to-me-about-money$/);
+  await expect(screen.getByRole("heading", { level: 2, name: "Bana Paradan Bahset" })).toBeVisible();
 });
 
 test("keyboard: focus an object, Enter opens it, Esc comes back to it", async ({ page, isMobile }) => {
@@ -68,12 +112,12 @@ test("back and forward move between chapters", async ({ page }) => {
   await page.goto("/shelf?test=1");
   await sceneReady(page);
   await page.getByTestId("chapter-shelf").getByRole("link", { name: /Economics Olympiad/ }).click();
-  await expect(page.getByTestId("chapter-shelf-item")).toBeVisible();
+  await expect(page.getByTestId("chapter-binder")).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/shelf(\?|$)/);
   await expect(page.getByTestId("chapter-shelf")).toBeVisible();
   await page.goForward();
-  await expect(page.getByTestId("chapter-shelf-item")).toBeVisible();
+  await expect(page.getByTestId("chapter-binder")).toBeVisible();
 });
 
 test("pointer: hovering an object shows its label, clicking opens it", async ({ page, isMobile }) => {
@@ -108,12 +152,24 @@ test("the basketball takes a shot", async ({ page, isMobile }) => {
   await expect(page.locator(".toast")).toHaveAttribute("data-visible", "1", { timeout: 5_000 });
 });
 
-test("day/night follows ?time and the toggle", async ({ page, isMobile }) => {
+test("day/night follows ?time", async ({ page, isMobile }) => {
   test.skip(isMobile, "same logic on both");
   await page.goto("/?test=1&time=night");
   await sceneReady(page);
   await expect(page.locator("html")).toHaveAttribute("data-time", "night");
-  await page.getByTestId("time-toggle").click(); // night → auto
-  await page.getByTestId("time-toggle").click(); // auto → day
+  await page.goto("/?test=1&time=day");
+  await sceneReady(page);
   await expect(page.locator("html")).toHaveAttribute("data-time", "day");
+});
+
+test("the switch goes to the text version and back to the room", async ({ page }) => {
+  await page.goto("/letter?test=1");
+  await sceneReady(page);
+  await page.getByRole("navigation", { name: "View" }).getByRole("link", { name: "Text" }).click();
+  await expect(page).toHaveURL(/\/text#letter$/);
+  await expect(page.getByTestId("text-view")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-mode", "doc");
+  await page.getByRole("navigation", { name: "View" }).getByRole("link", { name: "3D" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await sceneReady(page);
 });

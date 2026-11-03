@@ -23,9 +23,9 @@ export const NODE_KINDS = [
   "hit", // invisible click/hover proxy for an object
   "cam", // camera empty (cam__<focus>) + its look-at target (cam__<focus>__target)
   "label", // empty where the hover label / mobile pin anchors
-  "screen", // a screen quad that hosts a DOM UI when focused (computer, phone)
+  "screen", // a screen quad the live DOM UI (desktop, phone) is mapped onto, always on
   "display", // a quad with a live texture that isn't a DOM host (window view, now ticker, letter)
-  "slot", // content-driven surface: slot__book__NN, slot__photo__NN
+  "slot", // content-driven surface: slot__book__NN, slot__photo__NN, slot__binder__NN, slot__cover__NN
   "pivot", // a transform the code animates (globe spin, mailbox flag)
   "anchor", // a point the code needs (hoop rim, ball rest)
   "decor", // static set dressing
@@ -38,7 +38,9 @@ export type ScreenId = (typeof SCREEN_IDS)[number];
 export const DISPLAY_IDS = ["window", "now", "letter"] as const;
 export type DisplayId = (typeof DISPLAY_IDS)[number];
 
-export const SLOT_KINDS = ["book", "photo"] as const;
+/** book: a spine on the shelf · photo: a framed MUN photo · binder: a chapter binder on the shelf
+ *  (School, Olympiad, Model UN, Books) · cover: a book standing face-out. */
+export const SLOT_KINDS = ["book", "photo", "binder", "cover"] as const;
 export type SlotKind = (typeof SLOT_KINDS)[number];
 
 /** globe: spins (pins are added as children). contact_flag: mailbox flag lifts on hover.
@@ -84,7 +86,7 @@ export const nodeName = {
 
 /** Custom properties (glTF `extras` → three `userData`) the code reads. */
 export interface NodeExtras {
-  /** slot__* only: width / height of the visible front face. */
+  /** slot__* and display__letter: width / height of the visible front face. */
   aspect?: number;
   /** lightmap set this node samples: lm_<bake>_{day,night,mask} (Phase 2). */
   bake?: string;

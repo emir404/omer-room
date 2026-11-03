@@ -1,6 +1,6 @@
 "use client";
 
-import { Box3, type Material, type Mesh, type Object3D, Sphere, Vector3 } from "three";
+import { Box3, type CubeTexture, type Material, type Mesh, type Object3D, Sphere, Vector3 } from "three";
 import { create } from "zustand";
 import {
   type AnchorId,
@@ -10,6 +10,8 @@ import {
   type PivotId,
   parseNodeName,
   type ScreenId,
+  SLOT_KINDS,
+  type SlotKind,
 } from "@/lib/scene-contract";
 import type { LightmapBinding } from "./RoomMaterial";
 
@@ -19,13 +21,15 @@ import type { LightmapBinding } from "./RoomMaterial";
  */
 export interface SceneIndex {
   root: Object3D;
+  /** A small studio cube map for reflections (metals, the globe's varnish); set by Room. */
+  envMap: CubeTexture | null;
   objects: Map<ObjectId, Object3D>;
   hits: Map<ObjectId, Mesh>;
   labels: Map<ObjectId, Object3D>;
   cams: Map<FocusId, { position: Vector3; target: Vector3 }>;
   screens: Map<ScreenId, Mesh>;
   displays: Map<DisplayId, Mesh>;
-  slots: { book: Mesh[]; photo: Mesh[] };
+  slots: Record<SlotKind, Mesh[]>;
   pivots: Map<PivotId, Object3D>;
   anchors: Map<AnchorId, Object3D>;
   /** World bounds of each object's visible meshes (camera fit). */
@@ -50,7 +54,8 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
     cams: new Map(),
     screens: new Map(),
     displays: new Map(),
-    slots: { book: [], photo: [] },
+    envMap: null,
+    slots: { book: [], photo: [], binder: [], cover: [] },
     pivots: new Map(),
     anchors: new Map(),
     spheres: new Map(),
@@ -88,8 +93,7 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
         index.displays.set(id as DisplayId, node as Mesh);
         break;
       case "slot":
-        if (id === "book") index.slots.book.push(node as Mesh);
-        if (id === "photo") index.slots.photo.push(node as Mesh);
+        if ((SLOT_KINDS as readonly string[]).includes(id)) index.slots[id as SlotKind].push(node as Mesh);
         break;
       case "pivot":
         index.pivots.set(id as PivotId, node);
@@ -101,8 +105,7 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
         break;
     }
   });
-  index.slots.book.sort((a, b) => a.name.localeCompare(b.name));
-  index.slots.photo.sort((a, b) => a.name.localeCompare(b.name));
+  for (const list of Object.values(index.slots)) list.sort((a, b) => a.name.localeCompare(b.name));
 
   const meshBox = (mesh: Mesh) => {
     mesh.geometry.computeBoundingBox();

@@ -1,59 +1,69 @@
 {
-  "version": "befeb103b5",
-  "room": "/3d/room.45f568bec2.glb",
+  "version": "470152a1a9",
+  "room": "/3d/room.b8a15d6bc9.glb",
   "rgbmRange": 16,
   "lightmaps": {
     "desktop": {
       "props": {
-        "day": "/3d/lm/lm_props_day_2048.400d010775.ktx2",
-        "mask": "/3d/lm/lm_props_mask_1024.d16b9733af.ktx2",
+        "day": "/3d/lm/lm_props_day_2048.ae4bace6e1.ktx2",
+        "mask": "/3d/lm/lm_props_mask_1024.95c91c83bb.ktx2",
         "scale": {
-          "day": 2.559953212738037,
+          "day": 2.2787833213806152,
           "mask": [
-            0.38982948660850525,
-            1.1538591384887695,
-            0.1948448121547699
+            0.4069690406322479,
+            1.001306414604187,
+            0.1530345231294632
           ]
         }
       },
       "room": {
-        "day": "/3d/lm/lm_room_day_1024.7ab38631bf.ktx2",
-        "mask": "/3d/lm/lm_room_mask_512.5581fd8b49.ktx2",
+        "day": "/3d/lm/lm_room_day_1024.81b57abab4.ktx2",
+        "mask": "/3d/lm/lm_room_mask_512.01ccb72e98.ktx2",
         "scale": {
-          "day": 1.9349312782287598,
+          "day": 1.9377379417419434,
           "mask": [
-            0.014161596074700356,
-            0.02642286941409111,
-            0.11074674874544144
+            0.01407461054623127,
+            0.025398358702659607,
+            0.11103926599025726
           ]
         }
       }
     },
     "mobile": {
       "props": {
-        "day": "/3d/lm/lm_props_day_1024.552bd7c185.ktx2",
-        "mask": "/3d/lm/lm_props_mask_512.0c637ac56e.ktx2",
+        "day": "/3d/lm/lm_props_day_1024.23507d157c.ktx2",
+        "mask": "/3d/lm/lm_props_mask_256.4e75238711.ktx2",
         "scale": {
-          "day": 2.559953212738037,
+          "day": 2.2787833213806152,
           "mask": [
-            0.38982948660850525,
-            1.1538591384887695,
-            0.1948448121547699
+            0.4069690406322479,
+            1.001306414604187,
+            0.1530345231294632
           ]
         }
       },
       "room": {
-        "day": "/3d/lm/lm_room_day_512.34901a14e9.ktx2",
-        "mask": "/3d/lm/lm_room_mask_256.ca0460e067.ktx2",
+        "day": "/3d/lm/lm_room_day_512.d286b55e2c.ktx2",
+        "mask": "/3d/lm/lm_room_mask_256.e08d2e7084.ktx2",
         "scale": {
-          "day": 1.9349312782287598,
+          "day": 1.9377379417419434,
           "mask": [
-            0.014161596074700356,
-            0.02642286941409111,
-            0.11074674874544144
+            0.01407461054623127,
+            0.025398358702659607,
+            0.11103926599025726
           ]
         }
       }
+    }
+  },
+  "views": {
+    "window": {
+      "desktop": "/3d/views/window.desktop.561d5e4de3.webp",
+      "mobile": "/3d/views/window.mobile.c6b9af4c4b.webp"
+    },
+    "globe": {
+      "desktop": "/3d/views/globe.desktop.e924a4edd2.webp",
+      "mobile": "/3d/views/globe.mobile.a940c1abfe.webp"
     }
   }
 }

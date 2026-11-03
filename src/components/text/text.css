@@ -1,0 +1,182 @@
+/* The text view: the whole site on one page, built to scan. Grouped lists on a quiet canvas, one
+   row per item (what · my role · the headline number); a row opens to the story. */
+
+.tv {
+  --row-inset: 16px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 76px 16px 64px;
+  color: var(--ss-text-strong);
+}
+.text-root,
+html:not([data-mode="room"]) body {
+  background: var(--ss-canvas);
+}
+
+.tv-head {
+  padding: 0 4px 8px;
+}
+.tv-head h1 {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.tv-tagline {
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink-body);
+  max-width: 52ch;
+}
+.tv-now {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ss-text);
+}
+.tv-now-tag {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--ss-accent-soft);
+  color: var(--ss-accent-text);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 14px;
+}
+.tv-contact {
+  margin-top: 16px;
+}
+.tv-contact .pill {
+  background: var(--ss-surface);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.tv-contact a.pill:hover {
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.1), 0 2px 6px rgb(0 0 0 / 0.06);
+}
+.tv-contact .pill[data-todo] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ss-ink-4);
+}
+
+.tv-group {
+  margin-top: 28px;
+  scroll-margin-top: 72px;
+}
+.tv-group > h2 {
+  padding: 0 16px 8px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ss-text);
+}
+.tv-note {
+  padding: 0 16px 8px;
+  font-size: 13px;
+  color: var(--ss-text);
+}
+.tv-card {
+  list-style: none;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--ss-surface);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.tv-card > li + li {
+  position: relative;
+}
+.tv-card > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--ss-line);
+}
+
+.tv-item {
+  scroll-margin-top: 72px;
+}
+.tv-item > summary {
+  display: block;
+  list-style: none;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.tv-item > summary::-webkit-details-marker {
+  display: none;
+}
+.tv-item > summary:hover .ss-row {
+  background: var(--ss-ink-1);
+}
+.tv-item > summary:focus-visible {
+  outline: 2px solid var(--ss-accent);
+  outline-offset: -2px;
+}
+.tv-chevron {
+  color: var(--ss-icon-faint);
+  transition: transform 0.25s var(--ease), color 0.2s;
+}
+.tv-item[open] .tv-chevron {
+  transform: rotate(90deg);
+  color: var(--ss-icon);
+}
+.tv-detail {
+  display: grid;
+  gap: 16px;
+  padding: 4px 12px 18px;
+}
+.tv-summary {
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--ink-body);
+}
+.tv-detail .stat-value {
+  font-size: 24px;
+  line-height: 28px;
+}
+.tv-cover {
+  display: block;
+  width: 28px;
+  height: 42px;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 2px 5px -2px rgb(0 0 0 / 0.25);
+}
+.tv-cover[data-empty] {
+  background: linear-gradient(135deg, var(--ss-ink-3), var(--ss-ink-2));
+}
+.tv-letter {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+.tv-facts .stat-row {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+.tv-facts .stat-row dd {
+  font-weight: 450;
+  text-align: left;
+}
+.tv-foot {
+  margin-top: 32px;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--ss-text-faint);
+}
+
+@media (max-width: 520px) {
+  .tv {
+    padding-top: 68px;
+  }
+  .tv-head h1 {
+    font-size: 26px;
+    line-height: 32px;
+  }
+}

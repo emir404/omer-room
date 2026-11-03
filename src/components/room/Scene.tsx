@@ -14,6 +14,7 @@ import { Shelf } from "./objects/Shelf";
 import { Projector } from "./Projector";
 import { ReadySignal } from "./ReadySignal";
 import { Room } from "./Room";
+import { ScreenProjector } from "./ScreenProjector";
 
 /** Mirrors three's loading manager into the store, so the DOM loader doesn't import three. */
 function LoadProgress() {
@@ -33,7 +34,7 @@ export function Scene({ data }: { data: SceneData }) {
       <Suspense fallback={null}>
         <Room />
         <LiveTextures data={data} />
-        <Shelf books={data.books} photos={data.photos} />
+        <Shelf books={data.books} binders={data.binders} photos={data.photos} />
         <Globe places={data.places} />
         <Hoop hoop={data.hoop} />
         <Mailbox />
@@ -41,6 +42,7 @@ export function Scene({ data }: { data: SceneData }) {
       </Suspense>
       <CameraRig />
       <Projector />
+      <ScreenProjector />
     </>
   );
 }

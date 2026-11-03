@@ -31,3 +31,6 @@ art/out/
 art/previews/
 *.blend1
 __pycache__/
+
+# downloaded source data for the art pipeline (big; fetched by art/blender/fetch_sources.py)
+art/src/

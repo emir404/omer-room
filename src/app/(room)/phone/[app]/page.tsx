@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PhoneUI } from "@/components/screens/Phone";
-import { getPhoneApps, getSite } from "@/lib/content/load";
+import { getPhoneApps } from "@/lib/content/load";
 
 export const dynamicParams = false;
 
@@ -16,10 +15,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: getPhoneApps().find((a) => a.slug === app)?.data.title ?? "Phone" };
 }
 
+/** The app opens on the phone itself (ScreenLayer → PhoneUI); this keeps the URL and a heading. */
 export default async function PhoneAppPage({ params }: Props) {
   const { app } = await params;
-  const apps = getPhoneApps();
-  const active = apps.find((a) => a.slug === app);
+  const active = getPhoneApps().find((a) => a.slug === app);
   if (!active) notFound();
-  return <PhoneUI apps={apps} socials={getSite().socials} active={active} />;
+  return (
+    <h1 tabIndex={-1} className="sr-only">
+      {active.data.title}
+    </h1>
+  );
 }

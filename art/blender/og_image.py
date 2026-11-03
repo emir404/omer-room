@@ -29,22 +29,38 @@ scene.render.film_transparent = True
 scene.render.image_settings.color_mode = "RGBA"
 
 
-def emissive(hex_color, strength):
+VIEWS = os.path.join(HERE, "..", "out", "views")
+
+
+def emissive(hex_color, strength, image=None):
+    """An emitting surface: a flat color, or a picture (UV 0..1) when one is given."""
     m = bpy.data.materials.new("og_" + hex_color)
     m.use_nodes = True
-    b = m.node_tree.nodes["Principled BSDF"]
-    b.inputs["Base Color"].default_value = hex_rgba(hex_color)
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (0, 0, 0, 1)
     b.inputs["Emission Color"].default_value = hex_rgba(hex_color)
     b.inputs["Emission Strength"].default_value = strength
+    if image and os.path.exists(image):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(image)
+        tex.extension = "EXTEND"
+        nt.links.new(tex.outputs["Color"], b.inputs["Emission Color"])
     return m
 
 
-# the live pictures, approximated: sky-blue window, a lit monitor, the LED ticker
-for name, (c, s) in {"display__window": ("#9CC7E8", 1.8), "screen__computer": ("#3B5BA8", 1.3), "screen__phone": ("#E7C9A0", 1.0), "display__now": ("#FF9A3C", 1.6)}.items():
+# the live pictures: the orchard behind the window, the real desktop and phone UIs (captured by
+# scripts/capture-screens.ts), the LED ticker
+for name, (c, s, image) in {
+    "display__window": ("#9CC7E8", 1.25, os.path.join(VIEWS, "window_view.png")),
+    "screen__computer": ("#F2F2F4", 1.0, os.path.join(VIEWS, "screen_computer.png")),
+    "screen__phone": ("#F2F2F7", 1.0, os.path.join(VIEWS, "screen_phone.png")),
+    "display__now": ("#FF9A3C", 1.6, None),
+}.items():
     ob = bpy.data.objects.get(name)
     if ob:
         ob.data.materials.clear()
-        ob.data.materials.append(emissive(c, s))
+        ob.data.materials.append(emissive(c, s, image))
 
 lights.day()
 pos, target = (Vector(p) for p in CAMS["room"])

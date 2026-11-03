@@ -1,21 +1,28 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ChapterPanel, Gallery, Lede, LinkList, Metrics, PhotoRing, Prose, Text } from "@/components/panels/ui";
+import { ChapterPanel, Gallery, ItemLink, Lede, LinkList, List, metaOf, Metrics, Prose, Text } from "@/components/panels/ui";
 import { ContentError, getBooks, getShelfItems, getShelfMeta } from "@/lib/content/load";
+import { SHELF_IDS, type ShelfId } from "@/lib/content/schemas";
+import { chapterHref } from "@/lib/routes";
 
 export const dynamicParams = false;
 
+/** /shelf/<binder> lists a binder; /shelf/<item> and /shelf/<book> open one entry. */
 export function generateStaticParams() {
-  const slugs = [...getShelfItems().map((i) => i.slug), ...getBooks().map((b) => b.slug)];
+  const slugs = [...SHELF_IDS, ...getShelfItems().map((i) => i.slug), ...getBooks().map((b) => b.slug)];
   const duplicate = slugs.find((slug, i) => slugs.indexOf(slug) !== i);
-  if (duplicate) throw new ContentError(`"${duplicate}" is used by both a shelf item and a book — rename one of the files`);
+  if (duplicate) throw new ContentError(`"${duplicate}" is used twice on the shelf (a binder, a shelf item or a book): rename one of the files`);
   return slugs.map((item) => ({ item }));
 }
 
 type Props = { params: Promise<{ item: string }> };
 
+const isShelf = (value: string): value is ShelfId => (SHELF_IDS as readonly string[]).includes(value);
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { item } = await params;
+  if (isShelf(item)) return { title: getShelfMeta().shelves.find((s) => s.id === item)?.title ?? "Bookshelf" };
   const entry = getShelfItems().find((i) => i.slug === item) ?? getBooks().find((b) => b.slug === item);
   return { title: entry?.data.title.replace(/^TODO:?\s*/, "") || "Bookshelf" };
 }
@@ -23,21 +30,59 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ShelfItemPage({ params }: Props) {
   const { item } = await params;
   const shelves = getShelfMeta().shelves;
+  const back = { href: "/shelf", label: "Bookshelf" };
+
+  if (isShelf(item)) {
+    const shelf = shelves.find((s) => s.id === item)!;
+    if (item === "books") {
+      return (
+        <ChapterPanel eyebrow="Bookshelf" title={shelf.title} back={back} testId="chapter-binder">
+          <Lede>{shelf.blurb}</Lede>
+          <List label="Books">
+            {getBooks().map((b) => (
+              <li key={b.slug}>
+                <ItemLink
+                  href={chapterHref("shelf", b.slug)}
+                  title={b.data.title}
+                  subtitle={b.data.author}
+                  lead={
+                    b.data.cover ? (
+                      <Image className="cover-thumb" src={b.data.cover.src} alt="" width={30} height={45} />
+                    ) : (
+                      <span className="cover-thumb" data-empty aria-hidden="true" />
+                    )
+                  }
+                />
+              </li>
+            ))}
+          </List>
+        </ChapterPanel>
+      );
+    }
+    const entries = getShelfItems().filter((i) => i.data.shelf === item);
+    return (
+      <ChapterPanel eyebrow="Bookshelf" title={shelf.title} back={back} testId="chapter-binder">
+        <Lede>{shelf.blurb}</Lede>
+        <List label={shelf.title}>
+          {entries.map((i) => (
+            <li key={i.slug}>
+              <ItemLink href={chapterHref("shelf", i.slug)} title={i.data.title} subtitle={i.data.role} meta={metaOf(i.data.metrics[0])} />
+            </li>
+          ))}
+        </List>
+      </ChapterPanel>
+    );
+  }
 
   const entry = getShelfItems().find((i) => i.slug === item);
   if (entry) {
-    const shelf = shelves.find((s) => s.id === entry.data.shelf);
-    const isMun = entry.data.shelf === "mun";
+    const shelf = shelves.find((s) => s.id === entry.data.shelf)!;
     return (
-      <ChapterPanel eyebrow={shelf?.title ?? "Bookshelf"} title={entry.data.title} closeHref="/shelf" testId="chapter-shelf-item">
-        <p className="role">
-          <Text>{entry.data.role}</Text> · <Text>{entry.data.period}</Text>
-        </p>
+      <ChapterPanel eyebrow={`${entry.data.role} · ${entry.data.period}`} title={entry.data.title} back={{ href: chapterHref("shelf", shelf.id), label: shelf.label }} testId="chapter-shelf-item">
         <Lede>{entry.data.summary}</Lede>
         <Metrics items={entry.data.metrics} />
-        {isMun ? <PhotoRing images={entry.data.images} /> : null}
         <Prose html={entry.html} />
-        {isMun ? null : <Gallery images={entry.data.images} />}
+        <Gallery images={entry.data.images} empty={entry.data.shelf === "mun" ? "Conference photos go here (they also fill the frames on the shelf)." : undefined} />
         <LinkList links={entry.data.links} />
       </ChapterPanel>
     );
@@ -46,14 +91,16 @@ export default async function ShelfItemPage({ params }: Props) {
   const book = getBooks().find((b) => b.slug === item);
   if (book) {
     return (
-      <ChapterPanel eyebrow="Books I've read" title={book.data.title} closeHref="/shelf" testId="chapter-book">
-        <p className="role">
-          by <Text>{book.data.author}</Text>
-          {book.data.readIn ? ` · read ${book.data.readIn}` : null}
-        </p>
+      <ChapterPanel eyebrow={book.data.author} title={book.data.title} back={{ href: chapterHref("shelf", "books"), label: "Books" }} testId="chapter-book">
+        {book.data.cover ? (
+          <div className="book-cover">
+            <Image src={book.data.cover.src} alt={book.data.cover.alt} width={168} height={252} sizes="168px" />
+          </div>
+        ) : null}
         <blockquote className="takeaway">
           <Text>{book.data.takeaway}</Text>
         </blockquote>
+        {book.data.readIn ? <p className="sheet-meta">Read {book.data.readIn}</p> : null}
         <Prose html={book.html} />
       </ChapterPanel>
     );

@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: { formats: ["image/avif", "image/webp"] },
+  async redirects() {
+    // the text version used to live at /map
+    return [{ source: "/map", destination: "/text", permanent: true }];
+  },
   async headers() {
     return [
       {

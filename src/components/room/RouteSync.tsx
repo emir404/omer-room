@@ -30,7 +30,14 @@ export function RouteSync() {
 
   useEffect(() => {
     const next = parsePath(pathname);
-    useRoom.setState({ focus: next.focus, chapter: next.chapter, item: next.item, hoveredSub: null });
+    useRoom.setState((s) => ({
+      focus: next.focus,
+      chapter: next.chapter,
+      item: next.item,
+      hoveredSub: null,
+      // the desktop keeps showing the last app you opened
+      lastComputerApp: next.chapter === "computer" && next.item ? next.item : s.lastComputerApp,
+    }));
   }, [pathname]);
 
   return null;

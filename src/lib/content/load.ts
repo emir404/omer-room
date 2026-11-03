@@ -3,6 +3,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { z } from "zod";
 import { renderMarkdown } from "../markdown";
+import { imageSize } from "./image-size";
 import {
   BookSchema,
   ComputerAppSchema,
@@ -108,9 +109,22 @@ export const getShelfItems = () =>
     return items;
   });
 
+/** A book's cover: `cover` in its file, or public/content/books/<slug>.{jpg,png,webp} by convention. */
+function findCover(slug: string, title: string): ContentImage | undefined {
+  for (const ext of ["jpg", "jpeg", "png", "webp"]) {
+    const src = `/content/books/${slug}.${ext}`;
+    if (fs.existsSync(path.join(ROOT, "public", src))) return { src, alt: `${title}, book cover` };
+  }
+  return undefined;
+}
+
 export const getBooks = () =>
   cached("books", () => {
-    const books = readCollection("books", BookSchema);
+    const books = readCollection("books", BookSchema).map((book) => {
+      const cover = book.data.cover ?? findCover(book.slug, book.data.title);
+      if (cover) checkImages(book.file, [cover]);
+      return { ...book, data: { ...book.data, cover } };
+    });
     const pinned = new Map<number, string>();
     for (const book of books) {
       const slot = book.data.slot;
@@ -146,7 +160,7 @@ export const getGlobePlaces = () =>
 export const getWindowPage = () =>
   cached("window", () => {
     const page = readMarkdown(path.join(CONTENT, "window.md"), WindowPageSchema);
-    checkImages(page.file, page.data.photos);
+    checkImages(page.file, [...page.data.photos, ...(page.data.view ? [{ src: page.data.view.src, alt: "view" }] : [])]);
     return page;
   });
 
@@ -154,7 +168,10 @@ export const getLetterPage = () =>
   cached("letter", () => {
     const page = readMarkdown(path.join(CONTENT, "letter.md"), LetterPageSchema);
     checkImages(page.file, [page.data.letter, ...page.data.reactions.map((r) => r.image)]);
-    return page;
+    // the letter is shown at its own size and proportions, so read them from the file
+    const size = page.data.letter ? imageSize(path.join(ROOT, "public", page.data.letter.src)) : null;
+    if (page.data.letter && !size) throw new ContentError(`${page.file}: can't read the size of ${page.data.letter.src} (use a PNG, JPEG or WebP)`);
+    return { ...page, letterSize: size };
   });
 
 export const getContactPage = () =>

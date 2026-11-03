@@ -1,0 +1,92 @@
+/* Stageshow kit tokens (MIT, see LICENSE), lifted from the kit's stage.css onto :root so the
+   kit's parts work outside a <Stage>. The site's own look (font, accent, radii) is set after
+   them in src/app/globals.css. */
+
+@layer stageshow {
+  :root {
+  /* Surfaces */
+  --ss-canvas: #f6f5f4;
+  --ss-surface: #fff;
+  --ss-chrome: #fff;
+
+  /* Placeholder ink, lightest to darkest. Faux UI lives in these five. */
+  --ss-ink-1: rgba(0, 0, 0, 0.04);
+  --ss-ink-2: rgba(0, 0, 0, 0.06);
+  --ss-ink-3: rgba(0, 0, 0, 0.08);
+  /* ink-3 flattened onto the surface: an opaque fill for shapes that overlap
+     (avatars in a pile), so the overlap never paints darker */
+  --ss-fill: #ebebeb;
+  --ss-ink-4: rgba(0, 0, 0, 0.1);
+  --ss-ink-5: rgba(0, 0, 0, 0.15);
+
+  /* Lines and real text */
+  --ss-line: rgba(0, 0, 0, 0.06);
+  --ss-line-faint: rgba(0, 0, 0, 0.04);
+  /* Opaque, so icons that inherit them are one solid color (a translucent
+     color paints darker wherever strokes meet) */
+  --ss-text: #7a7a7d;
+  --ss-text-strong: #262628;
+  --ss-text-faint: #9a9a9d;
+  /* Icons: opaque, so strokes that overlap or meet never paint darker. Never
+     color an icon with a translucent ink or text token. */
+  --ss-icon: #707074;
+  --ss-icon-faint: #c4c4c7;
+
+  /* One accent, spent on the thing being acted on. Status colors only
+     where status is the subject. */
+  --ss-accent: #3b82f6;
+  --ss-accent-soft: rgba(59, 130, 246, 0.12);
+  --ss-success: #22c55e;
+  --ss-danger: #ef4444;
+  --ss-warning: #f59e0b;
+
+  /* The stage behind a framed shot */
+  --ss-well: #efeeec;
+
+  /* Status tints for diffs, badges and pills: soft fill, strong text */
+  --ss-success-soft: rgba(34, 197, 94, 0.12);
+  --ss-success-text: #15803d;
+  --ss-danger-soft: rgba(239, 68, 68, 0.1);
+  --ss-danger-text: #b91c1c;
+  --ss-warning-soft: rgba(245, 158, 11, 0.14);
+  --ss-warning-text: #b45309;
+  /* A second accent stop, for gradient meters and lines */
+  --ss-accent-2: #8b5cf6;
+  /* The accent as text (a link, a selected label). Darkened so it reads on
+     white; a custom accent gets the same treatment automatically */
+  --ss-accent-text: color-mix(in srgb, var(--ss-accent) 82%, #000);
+
+  /* Depth */
+  --ss-shadow-window: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.08);
+  --ss-shadow-float: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 0, 0, 0.08);
+  --ss-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* Framing depth: the hero window on the stage, satellites over the hero */
+  /* The ring gives every edge a line: the drop falls downward, so the top and
+     a light sidebar on a light ground would otherwise vanish */
+  --ss-shadow-hero: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 30px 60px -12px rgba(50, 50, 93, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3);
+  /* Something picked up and carried (a dragged card) */
+  --ss-shadow-lift: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 12px 28px -6px rgba(50, 50, 93, 0.28), 0 6px 12px -6px rgba(0, 0, 0, 0.16);
+  /* Tight on purpose: a wide blur over a white window reads as a gray smear */
+  --ss-raised: #fff;
+  --ss-shadow-satellite: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 14px 32px -8px rgba(50, 50, 93, 0.24), 0 4px 10px -4px rgba(0, 0, 0, 0.1);
+  /* A small window resting on the stage's ground, not over another window:
+     a hairline and a long, faint fall. The satellite's tight, dark contact
+     shadow reads harsh under a small window on open ground */
+  --ss-shadow-ground: 0 0 0 1px rgba(50, 50, 93, 0.06), 0 24px 48px -24px rgba(50, 50, 93, 0.18);
+
+  --ss-font: system-ui, -apple-system, sans-serif;
+  --ss-mono: "SF Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
+
+  /* Shape: the radius scale the product's own parts use. A look sets these
+     to its design system's values; each rounded part reads one */
+  --ss-radius-sm: 6px; /* a menu row, a segment's thumb */
+  --ss-radius-md: 8px; /* a field, a segmented track, a drop slot */
+  --ss-radius-lg: 10px; /* a popover, a toast */
+  --ss-radius-window: 12px; /* the product window */
+  --ss-radius-pill: 999px; /* badges and chips */
+
+  /* Density: the heights the parts are built on */
+  --ss-control: 34px; /* a text field */
+  --ss-row: 26px; /* a menu row, a segment */
+  }
+}

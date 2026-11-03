@@ -11,7 +11,8 @@ const config = [
     rules: { "react-hooks/immutability": "off" },
   },
   {
-    ignores: [".next/**", "node_modules/**", "public/**", "art/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+    // src/components/kit is the vendored stageshow kit (MIT): kept as upstream wrote it
+    ignores: [".next/**", "node_modules/**", "public/**", "art/**", "playwright-report/**", "test-results/**", "next-env.d.ts", ".agents/**", ".claude/**", "src/components/kit/**"],
   },
 ];
 

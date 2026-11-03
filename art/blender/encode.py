@@ -18,7 +18,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DIR = os.path.abspath(os.path.join(HERE, "..", "out", "lightmaps"))
 RGBM_RANGE = 16.0
 # (day, mask) sizes per tier and set: night lighting is soft, so the mask can be half-res
-TIERS = {"desktop": {"props": (2048, 1024), "room": (1024, 512)}, "mobile": {"props": (1024, 512), "room": (512, 256)}}
+# mobile night masks are quarter-res: night light is soft, and it keeps phones under 3 MB
+TIERS = {"desktop": {"props": (2048, 1024), "room": (1024, 512)}, "mobile": {"props": (1024, 256), "room": (512, 256)}}
 MASK_PCT = {"lamp": 99.5, "monitor": 99.5, "string": 99.0}
 BURIED = 0.004  # raw day radiance below this = no light path reached the texel
 

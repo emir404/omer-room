@@ -19,6 +19,7 @@ md.use({
 /** Markdown → HTML for content bodies. Content is first-party, so no sanitizer is needed. */
 export function renderMarkdown(source: string): string {
   const html = md.parse(source.trim()) as string;
-  // Make placeholders impossible to miss on the preview.
-  return html.replace(/TODO\(Ömer\)/g, '<mark class="todo">TODO(Ömer)</mark>');
+  // Make placeholders impossible to miss on the preview: "TODO(Ömer): …" up to the end of its
+  // paragraph or list item becomes one "To add" note.
+  return html.replace(/TODO(?:\(Ömer\))?:?\s*([\s\S]*?)(?=<\/p>|<\/li>)/g, '<mark class="todo">$1</mark>');
 }

@@ -1,8 +1,10 @@
 # Art pass — Blender, fully scripted, $0
 
 The room is built, lit and baked by Python scripts run in Blender headless (no GUI, no plugin, no
-paid assets; textures are generated from code, the globe uses Natural Earth's public-domain coast
-lines). Behavior binds to node names (`src/lib/scene-contract.ts`); the site learns which files to
+paid assets; textures are generated from code). Two inputs come from outside, both free to use: the
+view out of the window is a CC0 Poly Haven panorama ("Dry Orchard Meadow", Alexander Scholten), and the
+globe's map is Natural Earth's public-domain relief raster. `pnpm art sources` downloads them to
+`art/src` (git-ignored). Behavior binds to node names (`src/lib/scene-contract.ts`); the site learns which files to
 load from `src/lib/assets.manifest.json`. Look first: `art/STYLE.md`.
 
 ## Setup
@@ -15,7 +17,8 @@ load from `src/lib/assets.manifest.json`. Look first: `art/STYLE.md`.
 ## Run it
 
 ```bash
-pnpm art                 # everything: textures → room → bake → export → assets
+pnpm art                 # everything: sources → views → textures → room → bake → export → assets
+pnpm art views           # the window photo + globe map → art/out/views (art/blender/views.py)
 pnpm art room            # rebuild art/out/room.blend after editing a prop
 pnpm art preview -- day room,computer,shelf 128   # Cycles renders from the site's cameras → art/previews/
 pnpm art bake -- 128 2048 1024                    # quick bake (samples, props px, room px)
@@ -37,11 +40,13 @@ Single prop under studio light: `Blender -b --factory-startup -P art/blender/pre
 | `lib/plants.py` | leaves (heart, lance, monstera with slits) and vines |
 | `lib/lights.py` | day / night light rigs (previews and bakes share them) |
 | `props/*.py` | one module per area: shell, window, desk, computer, desk_objects, shelf, walldecor, door, floor, extras |
-| `textures.py` | procedural albedo textures (floor, kilim, globe, ball, posters, cork) |
+| `textures.py` | procedural albedo textures (floor, kilim, ball, posters, cork) |
+| `views.py` | the window view (a pinhole crop of the panorama: yaw, pitch, fov at the top of the file) and the globe map (relief + graticule, 4096×2048) |
+| `og_image.py` | the social preview still; uses `scripts/capture-screens.ts` shots of the live screens |
 | `build_room.py` | runs every prop, merges meshes per object + material, names them by the contract, adds hits/labels/cams, culls hidden faces, unwraps UV1 |
 | `bake.py` / `encode.py` | Cycles light-only bakes → denoise → RGBM / sRGB PNGs per device tier |
 | `export.py` | `art/out/room.glb` |
-| `../../scripts/build-assets.ts` | GLB → meshopt + WebP; PNG → KTX2 (UASTC + zstd); writes the manifest |
+| `../../scripts/build-assets.ts` | GLB → meshopt + WebP; lightmap PNGs → KTX2 (UASTC + zstd); views → per-tier WebP; writes the manifest |
 
 `art/out/` is generated (git-ignored). `public/3d/` and `src/lib/assets.manifest.json` are committed.
 
@@ -63,6 +68,15 @@ color = albedo × mix(day, night, nightness) · exposure  (+ glow, hover highlig
 
 Light-only bakes keep albedo swappable: book spines, photos and the letter are drawn at runtime and
 still sit in the baked light. Metals bake as diffuse and get a cube-map sheen scaled by local light.
+
+## Content the art reads
+
+- `content/letter.md` → the framed letter's proportions (`layout.letter_aspect()` reads the image's
+  size), so the frame fits the real letter 1:1. Re-run `pnpm art` after adding or replacing it.
+- The screens: `layout.SCREEN` (16:10) and `layout.PHONE_SCREEN` (iPhone, 402 × 874 pt) match the live
+  DOM UIs' design sizes — change both together.
+- Slots: `slot__book__NN` (spines), `slot__binder__NN` (the four chapter binders), `slot__cover__01`
+  (the face-out book), `slot__photo__NN`. Their front faces span UV 0..1; the site paints them.
 
 ## Changing things
 

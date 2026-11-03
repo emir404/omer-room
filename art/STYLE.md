@@ -1,8 +1,9 @@
 # Ömer's Room — art style
 
 A cozy, soft-realistic stylized room seen as a cutaway diorama: real-world scale, chunky friendly
-proportions, every hard edge bevelled, soft baked light. Pixel art lives only in pictures that are
-*on* things (the computer screen, the phone, the farm through the window, the LED ticker).
+proportions, every hard edge bevelled, soft baked light. What's *on* things is real: the computer
+and the phone run live, product-quality UIs, the window shows a photograph, the globe a real relief
+map. Only the LED ticker on the desk is dot-matrix, because that's what LED tickers are.
 
 ## Palette (`art/blender/lib/mats.py`)
 

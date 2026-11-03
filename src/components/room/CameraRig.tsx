@@ -27,13 +27,13 @@ interface Pose {
 function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamera, width: number, height: number): Pose {
   const chapter = focus !== "room" && isChapterId(focus) ? CHAPTERS[focus] : null;
   const portrait = width < height;
-  const insets = { top: LAYOUT.topBar, right: 0, bottom: 0 };
-  if (chapter?.kind === "panel") {
+  // on phones the computer opens as a sheet (its screen is too small to read), like a panel
+  const sheet = chapter?.kind === "panel" || (focus === "computer" && !isDesktopWidth(width));
+  const insets = { top: chapter?.kind === "screen" && !sheet ? 0 : LAYOUT.topInset, right: 0, bottom: 0 };
+  if (sheet) {
     if (isDesktopWidth(width)) insets.right = panelWidth(width);
     else insets.bottom = Math.round(height * LAYOUT.sheetRatio);
   }
-  // portrait overview: keep the room clear of the intro card at the bottom
-  if (focus === "room" && portrait) insets.bottom = Math.round(height * 0.2);
 
   const vFov = MathUtils.degToRad(camera.fov);
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (width / height));
@@ -45,7 +45,7 @@ function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamer
   let direction: Vector3;
   let distance: number;
 
-  const screen = chapter?.kind === "screen" ? index.screens.get(focus as ScreenId) : undefined;
+  const screen = chapter?.kind === "screen" && !sheet ? index.screens.get(focus as ScreenId) : undefined;
   if (screen) {
     // fit the screen's rectangle (not its bounding sphere) so the UI on it is big enough to read
     screen.geometry.computeBoundingBox();

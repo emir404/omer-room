@@ -6,19 +6,12 @@ import type { FocusId, ObjectId } from "./scene-contract";
 import type { TimeOverride } from "./time-of-day";
 
 /**
- * Shared state between the DOM layer (panels, pins, top bar) and the R3F scene.
+ * Shared state between the DOM layer (panels, pins, screens) and the R3F scene.
  * zustand works across both React roots, so either side can read/write.
  */
 
 /** "pending" until the client decides; "room" = 3D; "doc" = text fallback (no WebGL / context lost). */
 export type RoomMode = "pending" | "room" | "doc";
-
-export interface ScreenRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 export interface RoomState extends RouteState {
   mode: RoomMode;
@@ -32,8 +25,8 @@ export interface RoomState extends RouteState {
   /** Incremented to throw the basketball. */
   shotRequest: number;
   cameraAtRest: boolean;
-  /** Projected rect of the focused screen (computer/phone), in CSS px. */
-  screenRect: ScreenRect | null;
+  /** The app the desktop shows when you're not at the computer (the last one opened). */
+  lastComputerApp: string | null;
   timeOverride: TimeOverride;
   nightness: number;
   sound: boolean;
@@ -57,7 +50,7 @@ export const useRoom = create<RoomState>(() => ({
   hoveredSub: null,
   shotRequest: 0,
   cameraAtRest: false,
-  screenRect: null,
+  lastComputerApp: null,
   timeOverride: "auto",
   nightness: 0,
   sound: false,

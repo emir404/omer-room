@@ -8,7 +8,7 @@ import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { MeshoptDecoder } from "meshoptimizer";
 import { ASSETS } from "../src/lib/assets";
-import { NAME_RE, OBJECT_IDS, parseNodeName, requiredNodeNames } from "../src/lib/scene-contract";
+import { NAME_RE, OBJECT_IDS, parseNodeName, requiredNodeNames, SLOT_KINDS } from "../src/lib/scene-contract";
 
 const errors: string[] = [];
 const warnings: string[] = [];
@@ -43,14 +43,13 @@ for (const name of names) {
 }
 
 // 4. slots carry an aspect, and meshes have UV0 (+ UV1 once lightmaps exist)
-let books = 0;
-let photos = 0;
+const slots: Record<string, number> = {};
 for (const node of nodes) {
   const parsed = parseNodeName(node.getName());
   const mesh = node.getMesh();
   if (parsed?.kind === "slot") {
-    if (parsed.id === "book") books++;
-    if (parsed.id === "photo") photos++;
+    if (!(SLOT_KINDS as readonly string[]).includes(parsed.id)) errors.push(`${node.getName()}: unknown slot kind "${parsed.id}"`);
+    slots[parsed.id] = (slots[parsed.id] ?? 0) + 1;
     const aspect = (node.getExtras() as { aspect?: unknown }).aspect;
     if (typeof aspect !== "number") errors.push(`${node.getName()} needs a numeric "aspect" custom property`);
   }
@@ -85,5 +84,5 @@ if (errors.length) {
 }
 console.log(
   `✓ ${ASSETS.room} follows the scene contract — ${nodes.length} nodes, ${meshCount} meshes, ` +
-    `${Math.round(triangles).toLocaleString()} triangles, ${books} book slots, ${photos} photo slots`,
+    `${Math.round(triangles).toLocaleString()} triangles, slots: ${Object.entries(slots).map(([k, n]) => `${n} ${k}`).join(", ")}`,
 );

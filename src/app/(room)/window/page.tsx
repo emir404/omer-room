@@ -9,10 +9,11 @@ export default function WindowPage() {
   return (
     <ChapterPanel eyebrow={data.place} title={data.title} testId="chapter-window">
       <Lede>{data.intro}</Lede>
+      <Metrics items={data.metrics} />
       {data.facts.length ? (
-        <dl className="facts">
+        <dl className="stat-list facts">
           {data.facts.map((fact) => (
-            <div key={fact.label}>
+            <div className="stat-row" key={fact.label}>
               <dt>{fact.label}</dt>
               <dd>
                 <Text>{fact.value}</Text>
@@ -22,8 +23,7 @@ export default function WindowPage() {
         </dl>
       ) : null}
       <Prose html={html} />
-      <Metrics items={data.metrics} />
-      <Gallery images={data.photos} empty="Childhood photos coming soon" />
+      <Gallery images={data.photos} empty="Childhood photos go here." />
     </ChapterPanel>
   );
 }
