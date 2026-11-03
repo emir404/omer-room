@@ -3,7 +3,8 @@
 import { PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { useMemo } from "react";
-import { PCFShadowMap } from "three";
+import { AgXToneMapping, PCFShadowMap } from "three";
+import { ASSETS } from "@/lib/assets";
 import type { SceneData } from "@/lib/content/scene-data";
 import { detectTier, dprRange } from "@/lib/quality";
 import { useRoom } from "@/lib/store";
@@ -33,11 +34,13 @@ export default function RoomCanvas({ data }: { data: SceneData }) {
     <Canvas
       className="room-canvas"
       frameloop="demand"
-      shadows={{ type: PCFShadowMap }}
+      shadows={ASSETS.lightmaps ? false : { type: PCFShadowMap }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: testMode }}
       camera={{ fov: 32, near: 0.05, far: 60, position: [6, 4.6, 6.4] }}
       onCreated={(state) => {
         state.setDpr(range[1]);
+        // baked lighting comes from Blender (AgX view transform); match it
+        if (ASSETS.lightmaps) state.gl.toneMapping = AgXToneMapping;
         const canvas = state.gl.domElement;
         canvas.addEventListener("webglcontextlost", (event) => {
           event.preventDefault();

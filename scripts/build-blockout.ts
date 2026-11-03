@@ -1,5 +1,6 @@
 /**
- * `pnpm blockout` — generates public/3d/room.glb, the Phase 1 blockout.
+ * `pnpm blockout` — generates public/3d/blockout.glb, the Phase 1 blockout (kept as a reference /
+ * fallback; the site loads the baked room from src/lib/assets.manifest.json).
  *
  * Simple shapes, but every node already carries its final contract name
  * (src/lib/scene-contract.ts), so the Blender art pass replaces this file and nothing else.
@@ -588,7 +589,7 @@ for (const n of [
   scene.addChild(n);
 }
 
-const out = path.join(process.cwd(), "public", "3d", "room.glb");
+const out = path.join(process.cwd(), "public", "3d", "blockout.glb");
 fs.mkdirSync(path.dirname(out), { recursive: true });
 await new NodeIO().write(out, doc);
 console.log(`✓ wrote ${path.relative(process.cwd(), out)}`);

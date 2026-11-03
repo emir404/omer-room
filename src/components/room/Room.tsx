@@ -1,23 +1,39 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
-import { type ThreeEvent, useThree } from "@react-three/fiber";
+import { type ThreeEvent, useLoader, useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import type { Intersection, Mesh, MeshStandardMaterial, Object3D } from "three";
-import { roomUrl } from "@/lib/assets";
+import {
+  CubeCamera,
+  type CubeTexture,
+  HalfFloatType,
+  type Intersection,
+  type Mesh,
+  type MeshStandardMaterial,
+  type Object3D,
+  type Texture,
+  type WebGLRenderer,
+  WebGLCubeRenderTarget,
+} from "three";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+import { ASSETS, type LightmapSet, roomUrl } from "@/lib/assets";
+import { detectTier } from "@/lib/quality";
 import { objectHref } from "@/lib/routes";
 import { type NodeExtras, type ObjectId, parseNodeName } from "@/lib/scene-contract";
 import { playSfx } from "@/lib/sound";
 import { setHovered, useRoom } from "@/lib/store";
 import { overlay } from "./registry";
-import { createRoomMaterial, HIT_MATERIAL, updateRoomMaterial } from "./RoomMaterial";
+import { createRoomMaterial, HIT_MATERIAL, type LightmapBinding, setRoomLighting, updateRoomMaterial } from "./RoomMaterial";
 import { buildSceneIndex, type SceneIndex, useSceneIndex } from "./scene-index";
 
 const SHELL = /^decor__(floor|wall|rug|baseboard)/;
 
 /** Swap GLB materials for room materials, set shadow flags, and index everything by name. */
-function prepare(scene: Object3D): SceneIndex {
+function prepare(scene: Object3D, lightmaps: Map<string, LightmapBinding>, envMap: CubeTexture | null): SceneIndex {
   const index = buildSceneIndex(scene);
+  index.lightmaps = lightmaps;
+  const baked = lightmaps.size > 0;
   scene.traverse((node) => {
     const mesh = node as Mesh;
     if (!mesh.isMesh) return;
@@ -33,16 +49,22 @@ function prepare(scene: Object3D): SceneIndex {
       mesh.receiveShadow = false;
       return; // LiveTextures owns these materials
     }
-    const source = mesh.material as MeshStandardMaterial;
+    const extras = mesh.userData as NodeExtras & { sourceMaterial?: MeshStandardMaterial };
+    // always build from the GLB's material (prepare can run twice on the same scene in dev)
+    const source = (extras.sourceMaterial ??= mesh.material as MeshStandardMaterial);
     const material = createRoomMaterial({
       color: source.color.clone(),
+      map: source.map ?? null,
       roughness: source.roughness,
       metalness: source.metalness,
-      glow: (mesh.userData as NodeExtras).glow,
+      glow: extras.glow,
+      lightmap: extras.bake ? (lightmaps.get(extras.bake) ?? null) : null,
+      envMap,
     });
     mesh.material = material;
-    mesh.castShadow = !SHELL.test(mesh.name);
-    mesh.receiveShadow = true;
+    // baked lighting already has its shadows; realtime shadows are a blockout-only thing
+    mesh.castShadow = !baked && !SHELL.test(mesh.name);
+    mesh.receiveShadow = !baked;
     index.materials.push(material);
     const owner = index.ownerOf.get(mesh);
     if (owner) index.objectMaterials.set(owner, [...(index.objectMaterials.get(owner) ?? []), material]);
@@ -75,10 +97,53 @@ function resolveTarget(index: SceneIndex, intersections: Intersection[]): Target
   return null;
 }
 
+/** Lightmap URLs for this device: [day, mask] per bake set. */
+function lightmapUrls(): { sets: [string, LightmapSet][]; urls: string[] } {
+  const sets = Object.entries(ASSETS.lightmaps?.[detectTier()] ?? {});
+  return { sets, urls: sets.flatMap(([, s]) => [s.day, s.mask]) };
+}
+
+function configureKtx2(gl: WebGLRenderer) {
+  return (loader: KTX2Loader) => {
+    loader.setTranscoderPath(ASSETS.basisTranscoderPath).detectSupport(gl);
+  };
+}
+
+/** A small cube map of a neutral studio, for the metals' sheen (brass, medals, the rim). */
+function studioCube(gl: WebGLRenderer): CubeTexture {
+  const target = new WebGLCubeRenderTarget(128, { type: HalfFloatType });
+  const env = new RoomEnvironment();
+  new CubeCamera(0.05, 20, target).update(gl, env);
+  env.traverse((o) => (o as Mesh).geometry?.dispose());
+  return target.texture as unknown as CubeTexture;
+}
+
 export function Room() {
-  const { scene } = useGLTF(roomUrl(), false, true);
-  const index = useMemo(() => prepare(scene), [scene]);
   const gl = useThree((s) => s.gl);
+  const { sets, urls } = useMemo(() => lightmapUrls(), []);
+  // start the lightmaps downloading alongside the GLB (useGLTF suspends first)
+  useMemo(() => {
+    if (urls.length) useLoader.preload(KTX2Loader, urls, configureKtx2(gl));
+  }, [urls, gl]);
+  const { scene } = useGLTF(roomUrl(), false, true);
+  const textures = useLoader(KTX2Loader, urls, configureKtx2(gl)) as Texture[];
+  const lightmaps = useMemo(() => {
+    const map = new Map<string, LightmapBinding>();
+    const aniso = Math.min(4, gl.capabilities.getMaxAnisotropy());
+    sets.forEach(([name, set], i) => {
+      const day = textures[i * 2]!;
+      const mask = textures[i * 2 + 1]!;
+      for (const t of [day, mask]) {
+        t.channel = 1;
+        t.anisotropy = aniso;
+        t.needsUpdate = true;
+      }
+      map.set(name, { day, mask, dayScale: set.scale.day, maskScale: set.scale.mask, rgbmRange: ASSETS.rgbmRange });
+    });
+    return map;
+  }, [sets, textures, gl]);
+  const envMap = useMemo(() => (lightmaps.size ? studioCube(gl) : null), [lightmaps, gl]);
+  const index = useMemo(() => prepare(scene, lightmaps, envMap), [scene, lightmaps, envMap]);
   const invalidate = useThree((s) => s.invalidate);
   const lastHover = useRef<string | null>(null);
 
@@ -92,6 +157,7 @@ export function Room() {
   const nightness = useRoom((s) => s.nightness);
   const focus = useRoom((s) => s.focus);
   useEffect(() => {
+    setRoomLighting(nightness);
     for (const m of index.materials) updateRoomMaterial(m, 0, nightness);
     if (hovered && hovered !== focus) {
       for (const m of index.objectMaterials.get(hovered) ?? []) updateRoomMaterial(m, 1, nightness);

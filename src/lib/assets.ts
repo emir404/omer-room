@@ -1,30 +1,36 @@
+import generated from "./assets.manifest.json";
 import type { Tier } from "./quality";
 
 /**
  * Asset manifest — the one place the scene learns which files to load.
- * Phase 2 (Blender art pass) flips `room` to the baked GLB and fills `lightmaps`;
- * no component code changes.
+ *
+ * `assets.manifest.json` is written by `pnpm assets` (scripts/build-assets.ts) from the Blender art
+ * pipeline (art/README.md): the baked room GLB and, per device tier and bake set (a mesh's
+ * `userData.bake`), its lightmaps. File names carry a content hash, so they can be cached forever.
  */
 export interface LightmapSet {
+  /** RGBM (linear): light = rgb · a² · rgbmRange · scale.day — daylight (sun + sky). */
   day: string;
-  night: string;
-  /** R = desk lamp, G = monitor, B = string lights (each baked alone). */
+  /** sRGB: R = desk lamp, G = monitor, B = string lights, each baked alone (× scale.mask[i]). */
   mask: string;
+  scale: { day: number; mask: [number, number, number] };
 }
 
 export interface AssetManifest {
   version: string;
   room: string;
-  /** Per tier, per bake set (node userData.bake). null = blockout lighting. */
+  rgbmRange: number;
+  /** Per tier, per bake set. null = the Phase 1 blockout (realtime lights). */
   lightmaps: Record<Tier, Record<string, LightmapSet>> | null;
   basisTranscoderPath: string;
 }
 
 export const ASSETS: AssetManifest = {
-  version: "blockout-1",
-  room: "/3d/room.glb",
-  lightmaps: null,
+  version: generated.version,
+  room: generated.room,
+  rgbmRange: generated.rgbmRange,
+  lightmaps: generated.lightmaps as unknown as AssetManifest["lightmaps"],
   basisTranscoderPath: "/basis/r187/",
 };
 
-export const roomUrl = () => `${ASSETS.room}?v=${ASSETS.version}`;
+export const roomUrl = () => ASSETS.room;

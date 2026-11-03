@@ -1,6 +1,6 @@
 "use client";
 
-import { Box3, type Mesh, type MeshStandardMaterial, type Object3D, Sphere, Vector3 } from "three";
+import { Box3, type Material, type Mesh, type Object3D, Sphere, Vector3 } from "three";
 import { create } from "zustand";
 import {
   type AnchorId,
@@ -11,6 +11,7 @@ import {
   parseNodeName,
   type ScreenId,
 } from "@/lib/scene-contract";
+import type { LightmapBinding } from "./RoomMaterial";
 
 /**
  * The room GLB, indexed by contract name. Built once after load; everything in the scene
@@ -33,8 +34,10 @@ export interface SceneIndex {
   /** Any node → the object it belongs to (pointer resolution). */
   ownerOf: Map<Object3D, ObjectId>;
   /** Room materials per object (highlight) and all of them (day/night). */
-  objectMaterials: Map<ObjectId, MeshStandardMaterial[]>;
-  materials: MeshStandardMaterial[];
+  objectMaterials: Map<ObjectId, Material[]>;
+  materials: Material[];
+  /** Baked lighting per bake set (empty for the blockout). */
+  lightmaps: Map<string, LightmapBinding>;
 }
 
 export function buildSceneIndex(root: Object3D): SceneIndex {
@@ -55,6 +58,7 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
     ownerOf: new Map(),
     objectMaterials: new Map(),
     materials: [],
+    lightmaps: new Map(),
   };
 
   root.traverse((node) => {
@@ -115,10 +119,14 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
     index.spheres.set(id, box.getBoundingSphere(new Sphere()));
   }
 
+  // the shell: every mesh under a decor__floor* / decor__wall* node (single- or multi-primitive)
   const roomBox = new Box3();
   root.traverse((child) => {
-    const mesh = child as Mesh;
-    if (mesh.isMesh && (child.name.startsWith("decor__floor") || child.name.startsWith("decor__wall"))) roomBox.union(meshBox(mesh));
+    if (!child.name.startsWith("decor__floor") && !child.name.startsWith("decor__wall")) return;
+    child.traverse((part) => {
+      const mesh = part as Mesh;
+      if (mesh.isMesh) roomBox.union(meshBox(mesh));
+    });
   });
   roomBox.getBoundingSphere(index.roomSphere);
   return index;

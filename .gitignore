@@ -26,7 +26,8 @@ public/basis/
 *.m4a
 brief-private/
 
-# blender scratch
+# blender output (regenerate with `pnpm art`; previews with `pnpm art preview`)
 art/out/
-art/previews/*.tmp.png
+art/previews/
 *.blend1
+__pycache__/

@@ -2,7 +2,7 @@
 
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
-import { Group, Mesh, MeshStandardMaterial, SphereGeometry, Vector3 } from "three";
+import { Group, Mesh, MeshStandardMaterial, type Object3D, SphereGeometry, type Texture, Vector3 } from "three";
 import type { ScenePlace } from "@/lib/content/scene-data";
 import { useRoom } from "@/lib/store";
 import { canvasTexture, makeCanvas } from "@/lib/textures/canvas";
@@ -39,16 +39,27 @@ export function Globe({ places }: { places: ScenePlace[] }) {
   useEffect(() => {
     const pivot = index?.pivots.get("globe");
     if (!index || !pivot) return;
-    const sphere = pivot.children.find((c) => (c as Mesh).isMesh) as Mesh | undefined;
+    // the largest mesh on the pivot is the globe itself
+    const size = (o: Object3D) => {
+      const m = o as Mesh;
+      m.geometry.computeBoundingSphere();
+      return m.geometry.boundingSphere!.radius * m.scale.x;
+    };
+    const sphere = pivot.children.filter((c) => (c as Mesh).isMesh).sort((a, b) => size(b) - size(a))[0] as Mesh | undefined;
     if (!sphere) return;
-    sphere.geometry.computeBoundingSphere();
-    const radius = sphere.geometry.boundingSphere!.radius;
+    // radius in pivot space (compressed GLBs carry a dequantization scale on the mesh node)
+    const radius = size(sphere);
+    const center = sphere.position.clone();
 
-    const map = graticule();
+    // the baked GLB brings its own map; the blockout gets a graticule
     const material = sphere.material as MeshStandardMaterial;
-    material.map = map;
-    material.color.set("#ffffff");
-    material.needsUpdate = true;
+    let map: Texture | null = null;
+    if (!material.map) {
+      map = graticule();
+      material.map = map;
+      material.color.set("#ffffff");
+      material.needsUpdate = true;
+    }
 
     const pinMaterial = new MeshStandardMaterial({ color: "#E2552B", roughness: 0.4, emissive: "#5A1A08" });
     const stemMaterial = new MeshStandardMaterial({ color: "#F4EEE3", roughness: 0.5 });
@@ -56,12 +67,12 @@ export function Globe({ places }: { places: ScenePlace[] }) {
     for (const place of places) {
       const dir = latLngToVector(place.lat, place.lng, 1);
       const pin = new Mesh(PIN_GEOMETRY, pinMaterial);
-      pin.position.copy(dir).multiplyScalar(radius + 0.022);
+      pin.position.copy(dir).multiplyScalar(radius + 0.022).add(center);
       pin.userData.sub = { key: `place:${place.slug}`, label: place.title, href: place.href };
       pin.castShadow = true;
       for (let k = 1; k <= 3; k++) {
         const stem = new Mesh(STEM_GEOMETRY, stemMaterial);
-        stem.position.copy(dir).multiplyScalar(radius + 0.0055 * k);
+        stem.position.copy(dir).multiplyScalar(radius + 0.0055 * k).add(center);
         pins.add(stem);
         index.ownerOf.set(stem, "globe");
       }
@@ -73,7 +84,7 @@ export function Globe({ places }: { places: ScenePlace[] }) {
     return () => {
       pivot.remove(pins);
       pins.clear();
-      map.dispose();
+      map?.dispose();
       pinMaterial.dispose();
       stemMaterial.dispose();
     };
@@ -90,7 +101,8 @@ export function Globe({ places }: { places: ScenePlace[] }) {
       const place = places.find((p) => p.slug === item) ?? places[0];
       if (place) {
         const p = latLngToVector(place.lat, place.lng, 1);
-        const cam = state.camera.getWorldPosition(angle).sub(pivot.getWorldPosition(new Vector3()));
+        // compare in the pivot's parent space (the globe's base may be rotated in the room)
+        const cam = (pivot.parent ? pivot.parent.worldToLocal(state.camera.getWorldPosition(angle)) : state.camera.getWorldPosition(angle)).sub(pivot.position);
         const goal = Math.atan2(cam.x, cam.z) - Math.atan2(p.x, p.z);
         const diff = ((goal - pivot.rotation.y + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
         pivot.rotation.y += diff * (1 - Math.exp(-delta * 4));

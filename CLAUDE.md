@@ -17,7 +17,10 @@ pnpm build && pnpm start -p 3100
 pnpm test             # Playwright e2e (needs `pnpm build` first; starts the server itself)
 pnpm shots            # screenshots of every chapter → test-results/shots/ (server on :3100)
 PW_GPU=1 pnpm shots   # same, rendered on the Mac's GPU (Metal) instead of SwiftShader
-pnpm blockout         # regenerate public/3d/room.glb (the Phase 1 blockout)
+pnpm art              # Blender art pipeline: textures → room → bake → export → assets (art/README.md)
+pnpm art preview -- day room 128   # Cycles renders from the site's cameras → art/previews/
+pnpm assets           # art/out → public/3d (meshopt GLB + KTX2 lightmaps) + src/lib/assets.manifest.json
+pnpm blockout         # regenerate public/3d/blockout.glb (the Phase 1 stand-in, not loaded by the site)
 ```
 
 Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, frozen clock),
@@ -34,9 +37,10 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
 - `src/components/panels/` — `PanelHost` (places content: panel / bottom sheet / on a screen) + UI blocks.
 - `src/components/screens/` — ÖmerOS (computer) and the phone UI (plain links, server-rendered).
 - `src/lib/` — `scene-contract.ts` (GLB naming), `routes.ts`, `store.ts` (zustand, shared by DOM + 3D),
-  `assets.ts` (asset manifest), `layout.ts` (numbers shared by camera + CSS), `textures/*` (canvas art).
-- `scripts/` — content/scene/budget checks, blockout generator, screenshots.
-- `art/` — the Blender art pass (Phase 2). See `art/README.md`.
+  `assets.ts` + `assets.manifest.json` (which GLB/lightmaps to load; generated), `layout.ts` (numbers
+  shared by camera + CSS), `textures/*` (canvas art).
+- `scripts/` — content/scene/budget checks, `build-assets.ts`, `art.mjs` (runs Blender), blockout, screenshots.
+- `art/` — the Blender art pipeline: `art/blender/` scripts, `STYLE.md`, `README.md`. `art/out/` is generated.
 
 ## Rules
 
@@ -50,6 +54,8 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
   `<kind>__<id>[__NN]` (`obj__shelf`, `hit__shelf`, `cam__shelf` + `cam__shelf__target`, `label__shelf`,
   `screen__computer`, `slot__book__01`…). Behavior binds by name. `pnpm scene:check` validates a GLB.
 - Room meshes get materials from `createRoomMaterial()` only. Runtime textures use `flipY = false` (glTF UVs).
+  Static meshes are lit by baked lightmaps (UV1, `userData.bake` → set); only moving things (globe, ball)
+  use realtime lights. Changing art = edit `art/blender/`, re-run `pnpm art`, commit `public/3d` + the manifest.
 - Camera framing reads `LAYOUT` (`src/lib/layout.ts`); keep it in sync with the CSS numbers in `globals.css`.
 - Screens: the OS/phone DOM is positioned over the projected screen rect after the camera rests (no CSS3D,
   no `<Html transform>`). Their design sizes (640×480, 360×744) must match `SCREEN_DESIGN_WIDTH`.
@@ -62,5 +68,6 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
 
 - Phase 1 (this skeleton): done — routes, content, panels, ÖmerOS, phone, blockout room, day/night, pins,
   keyboard + touch, fallbacks, tests.
-- Phase 2: Blender art pass (scripted models, baked day/night lightmaps, KTX2) — `art/README.md`.
+- Phase 2 (art pass): done — scripted Blender room (~45 props), light-only day bake + lamp/monitor/string
+  light masks (RGBM KTX2, two atlases, desktop/mobile tiers), unlit baked shader with day/night blend.
 - Phase 3: polish — walk-in intro, loader dissolve, sound ambience, ball physics, inspectables, OG images.

@@ -68,9 +68,15 @@ export function LiveTextures({ data }: { data: SceneData }) {
     }
     const letterMesh = index.displays.get("letter");
     if (letterMesh) {
-      const material = createRoomMaterial({ color: new Color("#ffffff"), map: letterTexture, roughness: 0.92 });
+      const bake = (letterMesh.userData as { bake?: string }).bake;
+      const material = createRoomMaterial({
+        color: new Color("#ffffff"),
+        map: letterTexture,
+        roughness: 0.92,
+        lightmap: bake ? (index.lightmaps.get(bake) ?? null) : null,
+      });
       letterMesh.material = material;
-      letterMesh.receiveShadow = true;
+      letterMesh.receiveShadow = index.lightmaps.size === 0;
       index.materials.push(material);
     }
 

@@ -4,17 +4,22 @@ import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { Color, type DirectionalLight, MathUtils, type Mesh, PMREMGenerator, Vector3 } from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { ASSETS } from "@/lib/assets";
 import { useRoom } from "@/lib/store";
 import { useSceneIndex } from "./scene-index";
+
+/** Baked room: lightmaps light the static scene; these lights only touch what moves (globe, ball). */
+const BAKED = ASSETS.lightmaps !== null;
 
 const c = (hex: string) => new Color(hex);
 const DAY = { sky: c("#FFF3E0"), ground: c("#B9A58A"), key: c("#FFE4BC") };
 const NIGHT = { sky: c("#3B4C80"), ground: c("#1A1F2E"), key: c("#8EA2FF") };
 
 /**
- * Phase 1 lighting (the "no lightmap" branch of RoomMaterial): hemisphere + one shadow-casting
- * key light + small night lights at the lamp, monitor and string lights. The art pass replaces
- * all of this with baked day/night lightmaps.
+ * Realtime lights. With the baked room (art pass) only the moving things are lit this way — a sky
+ * fill plus the window's sun/moon direction, tuned to sit with the lightmaps. Without lightmaps (the
+ * Phase 1 blockout): hemisphere + a shadow-casting key + small night lights at the lamp, monitor and
+ * string lights.
  */
 export function Lights() {
   const nightness = useRoom((s) => s.nightness);
@@ -61,6 +66,17 @@ export function Lights() {
 
   const n = nightness;
   const lerpColor = (a: Color, b: Color) => a.clone().lerp(b, n);
+
+  if (BAKED) {
+    return (
+      <>
+        <hemisphereLight args={[lerpColor(DAY.sky, NIGHT.sky), lerpColor(DAY.ground, NIGHT.ground), MathUtils.lerp(1.15, 0.3, n)]} />
+        {/* through the window: the sun by day, the moon by night */}
+        <directionalLight position={[1.9, 3.45, -3.1]} color={lerpColor(DAY.key, NIGHT.key)} intensity={MathUtils.lerp(1.5, 0.2, n)} />
+        <pointLight position={lamp} color="#FFB45E" intensity={MathUtils.lerp(0, 1.8, n)} distance={3.5} decay={2} />
+      </>
+    );
+  }
 
   return (
     <>

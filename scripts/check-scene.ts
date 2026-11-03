@@ -55,10 +55,17 @@ for (const node of nodes) {
     if (typeof aspect !== "number") errors.push(`${node.getName()} needs a numeric "aspect" custom property`);
   }
   if (!mesh || parsed?.kind === "hit") continue;
+  const extras = node.getExtras() as { bake?: unknown };
+  // UV0 carries albedo textures and the runtime pictures (slots, screens, displays); UV1 the lightmap
+  const needsUV0 = parsed?.kind === "slot" || parsed?.kind === "screen" || parsed?.kind === "display";
   for (const prim of mesh.listPrimitives()) {
-    if (!prim.getAttribute("TEXCOORD_0")) errors.push(`${node.getName()} has no UV0 (TEXCOORD_0)`);
-    if (!prim.getAttribute("TEXCOORD_1")) {
-      (ASSETS.lightmaps ? errors : warnings).push(`${node.getName()} has no lightmap UV (TEXCOORD_1)`);
+    const textured = Boolean(prim.getMaterial()?.getBaseColorTexture());
+    if ((needsUV0 || textured) && !prim.getAttribute("TEXCOORD_0")) errors.push(`${node.getName()} has no UV0 (TEXCOORD_0)`);
+    if (extras.bake !== undefined) {
+      if (ASSETS.lightmaps && !Object.values(ASSETS.lightmaps).every((sets) => typeof extras.bake === "string" && extras.bake in sets)) {
+        errors.push(`${node.getName()} bakes into "${String(extras.bake)}", which has no lightmaps in the manifest`);
+      }
+      if (!prim.getAttribute("TEXCOORD_1")) errors.push(`${node.getName()} has bake="${String(extras.bake)}" but no lightmap UV (TEXCOORD_1)`);
     }
   }
 }

@@ -20,7 +20,7 @@ for (const tier of ["desktop", "mobile"] as Tier[]) {
   let total = glb;
   const sets = ASSETS.lightmaps?.[tier] ?? {};
   for (const set of Object.values(sets)) {
-    for (const url of [set.day, set.night, set.mask]) total += size(url);
+    for (const url of [set.day, set.mask]) total += size(url);
   }
   const ok = total <= BUDGET[tier];
   failed ||= !ok;
@@ -30,7 +30,7 @@ for (const tier of ["desktop", "mobile"] as Tier[]) {
 // KTX2 headers store pixel width/height at byte offsets 20 and 24.
 for (const tierSets of Object.values(ASSETS.lightmaps ?? {})) {
   for (const set of Object.values(tierSets)) {
-    for (const url of [set.day, set.night, set.mask]) {
+    for (const url of [set.day, set.mask]) {
       if (!url.endsWith(".ktx2")) continue;
       const header = fs.readFileSync(path.join(publicDir, url)).subarray(0, 32);
       const width = header.readUInt32LE(20);

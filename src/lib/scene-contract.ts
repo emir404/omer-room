@@ -90,6 +90,8 @@ export interface NodeExtras {
   bake?: string;
   /** decor/part: emissive at night (lamp shade, string-light bulbs, LED). */
   glow?: "lamp" | "monitor" | "string";
+  /** Moves at runtime (globe, ball): realtime-lit instead of baked. */
+  dynamic?: boolean;
 }
 
 /** Node names every room GLB must contain. */

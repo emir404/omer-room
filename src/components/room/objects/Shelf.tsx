@@ -2,7 +2,7 @@
 
 import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
-import { type BufferAttribute, type Mesh, type MeshStandardMaterial, SRGBColorSpace, type Texture, TextureLoader } from "three";
+import { type BufferAttribute, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial, SRGBColorSpace, type Texture, TextureLoader } from "three";
 import type { SceneBook } from "@/lib/content/scene-data";
 import { assignSlots } from "@/lib/slots";
 import { canvasTexture, ensureFonts, makeCanvas } from "@/lib/textures/canvas";
@@ -10,10 +10,19 @@ import { drawPhotoPlaceholder, PHOTO_H, PHOTO_W } from "@/lib/textures/screens";
 import { drawSpineAtlas } from "@/lib/textures/spines";
 import { useSceneIndex } from "../scene-index";
 
-/** Maps a slot's 0..1 UVs into its atlas cell (from a saved copy, so it's safe to re-run). */
+/** Maps a slot's 0..1 UVs into its atlas cell (from a saved copy, so it's safe to re-run).
+ *  getX/setXY handle quantized (normalized integer) UVs from the compressed GLB. */
 function remapUV(mesh: Mesh, cell: { u0: number; v0: number; u1: number; v1: number }) {
   const attr = mesh.geometry.getAttribute("uv") as BufferAttribute;
-  const original: Float32Array = (mesh.userData.uv0 ??= Float32Array.from(attr.array as Float32Array));
+  let original = mesh.userData.uv0 as Float32Array | undefined;
+  if (!original) {
+    original = new Float32Array(attr.count * 2);
+    for (let i = 0; i < attr.count; i++) {
+      original[i * 2] = attr.getX(i);
+      original[i * 2 + 1] = attr.getY(i);
+    }
+    mesh.userData.uv0 = original;
+  }
   for (let i = 0; i < attr.count; i++) {
     attr.setXY(i, cell.u0 + original[i * 2]! * (cell.u1 - cell.u0), cell.v0 + original[i * 2 + 1]! * (cell.v1 - cell.v0));
   }
@@ -21,7 +30,7 @@ function remapUV(mesh: Mesh, cell: { u0: number; v0: number; u1: number; v1: num
 }
 
 function applyTexture(mesh: Mesh, texture: Texture) {
-  const material = mesh.material as MeshStandardMaterial;
+  const material = mesh.material as MeshStandardMaterial | MeshBasicMaterial;
   material.map = texture;
   material.color.set("#ffffff");
   material.needsUpdate = true;
