@@ -1,0 +1,10 @@
+[
+  { "id": "shelf", "label": "the academic bit", "description": "Bookshelf: school projects, the economics olympiad, Model UN, and books I've read.", "order": 1 },
+  { "id": "computer", "label": "what I do for work", "description": "Computer: Arc Studio, e2vc, NextGen and other work.", "order": 2 },
+  { "id": "phone", "label": "socials & side quests", "description": "Phone: socials, Talk to Me About Money, and side projects.", "order": 3 },
+  { "id": "globe", "label": "places I've been", "description": "Globe: places I've been and what I took from them.", "order": 4 },
+  { "id": "window", "label": "where I'm from", "description": "Window: the farm in Kozan where I grew up.", "order": 5 },
+  { "id": "letter", "label": "you might know me from this", "description": "The framed letter: my viral OpenAI CEO application.", "order": 6 },
+  { "id": "contact", "label": "say hi", "description": "Mailbox: email, LinkedIn, and a booking link.", "order": 7 },
+  { "id": "hoop", "label": "shoot your shot", "description": "The basketball. Click it.", "order": 8 }
+]

@@ -1,0 +1,22 @@
+{
+  "name": "Ömer Öztok",
+  "firstName": "Ömer",
+  "tagline": "Co-founder of Arc Studio. Economics olympiad gold medalist. Grew up on a farm in Kozan.",
+  "now": "Running Arc Studio · applying to college for Fall 2027 · TODO(Ömer): one more thing you're up to",
+  "location": "Istanbul, Türkiye",
+  "email": "TODO(Ömer): your email",
+  "calUrl": "TODO(Ömer): your cal.com link",
+  "socials": [
+    { "id": "x", "label": "X", "handle": "TODO", "url": "TODO(Ömer): https://x.com/…", "icon": "x" },
+    { "id": "instagram", "label": "Instagram", "handle": "TODO", "url": "TODO(Ömer): https://instagram.com/…", "icon": "instagram" },
+    { "id": "linkedin", "label": "LinkedIn", "handle": "TODO", "url": "TODO(Ömer): https://linkedin.com/in/…", "icon": "linkedin" }
+  ],
+  "seo": {
+    "title": "Ömer Öztok",
+    "description": "Walk into Ömer's room: Arc Studio, venture work, the economics olympiad, Model UN, the farm in Kozan — and that OpenAI letter."
+  },
+  "hoop": {
+    "swish": "Nothing but net. TODO(Ömer): a secret line for people who score.",
+    "miss": ["Off the rim.", "Brick. Again?", "So close.", "Airball. It happens."]
+  }
+}

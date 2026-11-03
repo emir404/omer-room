@@ -1,0 +1,32 @@
+# deps / build
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# tests
+playwright-report/
+test-results/
+blob-report/
+
+# env
+.env*
+!.env.example
+.vercel
+
+# os / editors
+.DS_Store
+*.swp
+
+# generated on install (scripts/copy-basis.mjs)
+public/basis/
+
+# private source material (voice notes, CV scans) — never commit
+*.m4a
+brief-private/
+
+# blender scratch
+art/out/
+art/previews/*.tmp.png
+*.blend1
