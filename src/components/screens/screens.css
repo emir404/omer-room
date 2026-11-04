@@ -213,6 +213,13 @@ html[data-time="night"] {
 
 /* ------------------------------------------------------------------ motion guards */
 
+/* reduced motion: globals.css collapses durations; the delays that stage a wake or a push go too */
+@media (prefers-reduced-motion: reduce) {
+  :is(.ph-views, .ph-view, .ph-lock, .osc-view, .ph .ss-phone__time) {
+    transition-delay: 0s !important;
+  }
+}
+
 /* deterministic screenshots (?test=1): every screen transition lands at once */
 html[data-test="1"] :is(.os-scroll, .osc-view, .osc-glass, .ph-views, .ph-view, .ph-lock, .ph .ss-phone__time, .ph .ss-phone__status, .ph .ss-phone__home) {
   transition: none !important;

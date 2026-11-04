@@ -6,6 +6,8 @@ import { useState } from "react";
 import { Text } from "@/components/panels/ui";
 import type { ScreenApp } from "@/lib/content/scene-data";
 import { Copy, hostOf, liveLinks, LinkPills, MetaLine, Numbers, Shots, Story } from "./parts";
+// the shared sheet first, so this one's overrides land after it whichever module loads first
+import "./screens.css";
 import "./omer-compact.css";
 
 /**
