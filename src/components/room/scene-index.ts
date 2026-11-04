@@ -55,7 +55,7 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
     screens: new Map(),
     displays: new Map(),
     envMap: null,
-    slots: { book: [], photo: [], binder: [], cover: [] },
+    slots: { book: [], cover: [], photo: [], binder: [], label: [], page: [] },
     pivots: new Map(),
     anchors: new Map(),
     spheres: new Map(),

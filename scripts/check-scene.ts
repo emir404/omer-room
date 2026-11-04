@@ -8,7 +8,7 @@ import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { MeshoptDecoder } from "meshoptimizer";
 import { ASSETS } from "../src/lib/assets";
-import { NAME_RE, OBJECT_IDS, parseNodeName, requiredNodeNames, SLOT_KINDS } from "../src/lib/scene-contract";
+import { NAME_RE, OBJECT_IDS, PROP_IDS, parseNodeName, requiredNodeNames, SECTION_IDS, SLOT_KINDS } from "../src/lib/scene-contract";
 
 const errors: string[] = [];
 const warnings: string[] = [];
@@ -69,6 +69,47 @@ for (const node of nodes) {
   }
 }
 
+// 5. items: under obj__shelf, in a known section, books carry their spine + cover slots
+const byName = new Map(nodes.map((n) => [n.getName(), n]));
+const parentOf = new Map<string, string>();
+for (const node of nodes) for (const child of node.listChildren()) parentOf.set(child.getName(), node.getName());
+const ancestors = (name: string) => {
+  const out: string[] = [];
+  for (let p = parentOf.get(name); p; p = parentOf.get(p)) out.push(p);
+  return out;
+};
+const items = nodes.filter((n) => parseNodeName(n.getName())?.kind === "item" && !n.getMesh() && parseNodeName(n.getName())!.rest.length === 0);
+const sections = new Set<string>(SECTION_IDS);
+for (const item of items) {
+  const name = item.getName();
+  const { id } = parseNodeName(name)!;
+  const extras = item.getExtras() as { section?: unknown };
+  if (!ancestors(name).includes("obj__shelf")) errors.push(`${name} must sit under obj__shelf`);
+  if (typeof extras.section !== "string" || !sections.has(extras.section)) errors.push(`${name} needs extras.section ∈ ${SECTION_IDS.join(", ")}`);
+  const inside = (kind: string) =>
+    nodes.filter((n) => n.getName().startsWith(`slot__${kind}__`) && ancestors(n.getName()).includes(name)).map((n) => n.getName());
+  const book = /^book_(\d\d)$/.exec(id);
+  if (book) {
+    for (const kind of ["book", "cover"]) {
+      if (!inside(kind).includes(`slot__${kind}__${book[1]}`)) errors.push(`${name} must contain slot__${kind}__${book[1]}`);
+    }
+  } else if (!/^binder_\d\d$/.test(id) && !(PROP_IDS as readonly string[]).includes(id)) {
+    errors.push(`${name}: unknown item (books are book_NN, binders binder_NN, props one of PROP_IDS)`);
+  }
+  if (!item.listChildren().some((c) => c.getMesh())) errors.push(`${name} has no meshes`);
+}
+for (const id of PROP_IDS) if (!byName.has(`item__${id}`)) warnings.push(`no item__${id} on the shelf (its content falls back to a binder)`);
+for (const node of nodes) {
+  const parsed = parseNodeName(node.getName());
+  const extras = node.getExtras() as { section?: unknown; w?: unknown; h?: unknown };
+  if (parsed?.kind === "slot" && parsed.id === "label" && (typeof extras.section !== "string" || !sections.has(extras.section))) {
+    errors.push(`${node.getName()} needs extras.section`);
+  }
+  if (parsed?.kind === "anchor" && parsed.id.startsWith("section_") && (typeof extras.w !== "number" || typeof extras.h !== "number")) {
+    errors.push(`${node.getName()} needs numeric extras w and h (the opening's size in meters)`);
+  }
+}
+
 const meshCount = nodes.filter((n) => n.getMesh()).length;
 const triangles = doc
   .getRoot()
@@ -84,5 +125,5 @@ if (errors.length) {
 }
 console.log(
   `✓ ${ASSETS.room} follows the scene contract — ${nodes.length} nodes, ${meshCount} meshes, ` +
-    `${Math.round(triangles).toLocaleString()} triangles, slots: ${Object.entries(slots).map(([k, n]) => `${n} ${k}`).join(", ")}`,
+    `${Math.round(triangles).toLocaleString()} triangles, ${items.length} items, slots: ${Object.entries(slots).map(([k, n]) => `${n} ${k}`).join(", ")}`,
 );

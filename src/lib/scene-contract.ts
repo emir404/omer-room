@@ -20,14 +20,15 @@ export const FOCUS_IDS: readonly FocusId[] = ["room", ...OBJECT_IDS];
 export const NODE_KINDS = [
   "obj", // group of meshes that highlight together; id ∈ OBJECT_IDS
   "part", // a mesh inside an obj group (part__<objectId>__NN)
+  "item", // something on the shelf you can pick up: item__<id> (see ITEM below)
   "hit", // invisible click/hover proxy for an object
   "cam", // camera empty (cam__<focus>) + its look-at target (cam__<focus>__target)
   "label", // empty where the hover label / mobile pin anchors
   "screen", // a screen quad the live DOM UI (desktop, phone) is mapped onto, always on
   "display", // a quad with a live texture that isn't a DOM host (window view, now ticker, letter)
-  "slot", // content-driven surface: slot__book__NN, slot__photo__NN, slot__binder__NN, slot__cover__NN
-  "pivot", // a transform the code animates (globe spin, mailbox flag)
-  "anchor", // a point the code needs (hoop rim, ball rest)
+  "slot", // content-driven surface: slot__book__NN, slot__cover__NN, slot__photo__NN, slot__binder__NN…
+  "pivot", // a transform the code animates (globe spin, mailbox flag and door)
+  "anchor", // a point the code needs (hoop rim, the shelf's sections)
   "decor", // static set dressing
 ] as const;
 export type NodeKind = (typeof NODE_KINDS)[number];
@@ -38,18 +39,64 @@ export type ScreenId = (typeof SCREEN_IDS)[number];
 export const DISPLAY_IDS = ["window", "now", "letter"] as const;
 export type DisplayId = (typeof DISPLAY_IDS)[number];
 
-/** book: a spine on the shelf · photo: a framed MUN photo · binder: a chapter binder on the shelf
- *  (School, Olympiad, Model UN, Books) · cover: a book standing face-out. */
-export const SLOT_KINDS = ["book", "photo", "binder", "cover"] as const;
+/**
+ * Content-driven surfaces; each front face spans UV 0..1 and carries an `aspect`.
+ *  book    a book's spine (slot__book__NN)          cover  the same book's front cover (slot__cover__NN, same NN)
+ *  binder  a school binder's spine label            photo  a framed photo (MUN frames, the certificate)
+ *  label   a shelf section's name plate (extras.section)
+ *  page    a printed page drawn at runtime (slot__page__01: the research paper's title page)
+ */
+export const SLOT_KINDS = ["book", "cover", "photo", "binder", "label", "page"] as const;
 export type SlotKind = (typeof SLOT_KINDS)[number];
 
-/** globe: spins (pins are added as children). contact_flag: mailbox flag lifts on hover.
- *  hoop_ball: the ball itself — its rest transform is where it returns after a shot. */
-export const PIVOT_IDS = ["globe", "contact_flag", "hoop_ball"] as const;
+/** globe: spins (pins are added as children). contact_flag / contact_door: the mailbox opens when
+ *  you come to it. hoop_ball: the ball itself — its rest transform is where it returns after a shot. */
+export const PIVOT_IDS = ["globe", "contact_flag", "contact_door", "hoop_ball"] as const;
 export type PivotId = (typeof PIVOT_IDS)[number];
 
-export const ANCHOR_IDS = ["hoop_rim"] as const;
+/** The shelf's sections, top to bottom on the case; same ids as `shelves` in content/shelf.json. */
+export const SECTION_IDS = ["school", "olympiad", "mun", "books"] as const;
+export type SectionId = (typeof SECTION_IDS)[number];
+
+/** hoop_rim: where the ball scores. section_<id>: the middle of a shelf section's opening, with
+ *  extras w × h (meters) — the camera frames it. */
+export const ANCHOR_IDS = ["hoop_rim", "section_school", "section_olympiad", "section_mun", "section_books"] as const;
 export type AnchorId = (typeof ANCHOR_IDS)[number];
+
+/**
+ * Items: things on the shelf you can pick up. `item__<id>` is an empty at the item's middle,
+ * oriented so its local +X points out of the face you'd show someone (a book's front cover, a
+ * medal's face, the placard's printed side) and +Y is up (glTF; Blender +Z). Its meshes are
+ * children (item__<id>__NN, merged per material inside the item, closed on every side: you see
+ * all of it when it's in your hand), plus the slot planes that belong to it.
+ *  book_NN               a book: slot__book__NN (spine) + slot__cover__NN (front cover); extras.faceout
+ *                        when it stands showing its cover
+ *  binder_NN             a school binder (slot__binder__NN on its spine)
+ *  paper_research        the bound research paper (slot__page__01 is its title page)
+ *  books_lgs             the tied stack of donated books (My LGS Buddy)
+ *  certificate           a framed certificate (slot__photo__04)
+ *  medal_gold, medal_silver_1, medal_silver_2, medal_bronze_1, medal_bronze_2, trophy
+ *  placard, gavel, lanyard, photo_01..03 (slot__photo__01..03)
+ * Every item carries extras.section.
+ */
+export const PROP_IDS = [
+  "paper_research",
+  "books_lgs",
+  "certificate",
+  "medal_gold",
+  "medal_silver_1",
+  "medal_silver_2",
+  "medal_bronze_1",
+  "medal_bronze_2",
+  "trophy",
+  "placard",
+  "gavel",
+  "lanyard",
+  "photo_01",
+  "photo_02",
+  "photo_03",
+] as const;
+export type PropId = (typeof PROP_IDS)[number];
 
 export const NAME_RE = /^[a-z0-9_]+$/;
 const SEP = "__";
@@ -72,6 +119,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export const nodeName = {
   obj: (id: ObjectId) => `obj__${id}`,
   part: (id: ObjectId, n: number) => `part__${id}__${pad(n)}`,
+  item: (id: string) => `item__${id}`,
   hit: (id: ObjectId) => `hit__${id}`,
   label: (id: ObjectId) => `label__${id}`,
   cam: (id: FocusId) => `cam__${id}`,
@@ -94,6 +142,13 @@ export interface NodeExtras {
   glow?: "lamp" | "monitor" | "string";
   /** Moves at runtime (globe, ball): realtime-lit instead of baked. */
   dynamic?: boolean;
+  /** item__book_NN: stands face-out (its cover shows on the shelf). */
+  faceout?: boolean;
+  /** item__* and slot__label__*: the shelf section it sits in. */
+  section?: SectionId;
+  /** anchor__section_*: width and height of the section's opening, in meters. */
+  w?: number;
+  h?: number;
 }
 
 /** Node names every room GLB must contain. */
