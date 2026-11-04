@@ -1,4 +1,5 @@
 import { ArrowUpRight, ImagePlus } from "lucide-react";
+import { Fragment } from "react";
 import { Window } from "@/components/kit/window";
 import { Text } from "@/components/panels/ui";
 import type { ScreenApp, ScreenImage } from "@/lib/content/scene-data";
@@ -34,17 +35,22 @@ export function Copy({ text, className, noteClass }: { text: string; className: 
   );
 }
 
-/** A role's "Co-Founder & CEO · Grades 11–12 · 30 hrs/week" line, each part with its own TODO mark. */
+/**
+ * A role's "Co-Founder & CEO · Grades 11–12 · 30 hrs/week" line, each part with its own TODO mark.
+ * A line breaks only between parts, never inside one ("30 / hrs/week").
+ */
 export function MetaLine({ parts, className }: { parts: (string | undefined)[]; className?: string }) {
   const shown = parts.flatMap((part) => (part ? part.split(" · ") : []));
   if (!shown.length) return null;
   return (
     <p className={className}>
       {shown.map((part, i) => (
-        <span key={`${i}-${part}`}>
+        <Fragment key={`${i}-${part}`}>
           {i ? <span aria-hidden="true"> · </span> : null}
-          <Text>{part}</Text>
-        </span>
+          <span className="meta-part">
+            <Text>{part}</Text>
+          </span>
+        </Fragment>
       ))}
     </p>
   );

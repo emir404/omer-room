@@ -15,11 +15,12 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
  *   ?app=copilot          the phone's app page     ?time=night the night wallpaper
  *   ?test=1               the frozen 9:41 clock and no transitions, as the e2e shots use
  *   ?switch=1             outline where the site's 3D/Text switch floats over compact frames
+ *   ?size=360x740         another phone viewport for the compact frames (390x844 by default)
  * Links inside a frame change the frame instead of leaving the page.
  */
 export default async function ScreensDevPage({ searchParams }: Props) {
   if (process.env.NODE_ENV === "production") notFound();
   const params = await searchParams;
   const one = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : undefined);
-  return <Harness data={getSceneData()} frame={one("frame")} os={one("os")} osc={one("osc")} app={one("app")} showSwitch={one("switch") === "1"} />;
+  return <Harness data={getSceneData()} frame={one("frame")} os={one("os")} osc={one("osc")} app={one("app")} size={one("size")} showSwitch={one("switch") === "1"} />;
 }

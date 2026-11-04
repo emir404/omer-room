@@ -174,8 +174,9 @@
   height: 66px;
   border-radius: 16px;
   background: #fff;
-  font-size: 13px;
-  line-height: 16px;
+  /* 14pt: the phone docks at ~0.79 on an 800px-tall viewport, so this is still 11px there */
+  font-size: 14px;
+  line-height: 17px;
   font-weight: 500;
   color: #1c1c1e;
   transition: background 0.15s;
@@ -262,7 +263,7 @@ a.ph-action:active {
   text-overflow: ellipsis;
 }
 .ph-row-sub mark.todo {
-  font-size: 13px;
+  font-size: 14px;
 }
 .ph-chevron {
   flex: none;

@@ -76,6 +76,11 @@ html[data-time="night"] {
 
 /* ------------------------------------------------------------------ shared content blocks */
 
+/* a meta line ("Co-Founder & CEO · Grades 11–12 · 30 hrs/week") breaks only at its dots */
+.meta-part {
+  white-space: nowrap;
+}
+
 /* placeholders inside the screens: a whole-paragraph "to add" becomes a quiet note */
 .todo-note {
   padding: 10px 14px;

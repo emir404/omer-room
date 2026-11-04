@@ -30,11 +30,14 @@ interface HarnessProps {
   os?: string;
   osc?: string;
   app?: string;
+  /** "360x740": the phone viewport the compact frames fill. */
+  size?: string;
   showSwitch: boolean;
 }
 
 /** The frames, each a `.screen-inner` box at the design size ScreenLayer would give it. */
-export function Harness({ data, frame, os, osc, app, showSwitch }: HarnessProps) {
+export function Harness({ data, frame, os, osc, app, size, showSwitch }: HarnessProps) {
+  const [cw = 390, ch = 844] = size?.match(/^\d+x\d+$/) ? size.split("x").map(Number) : [];
   // client only, like the real screens (ScreenLayer is never server-rendered)
   const ready = useSyncExternalStore(
     noop,
@@ -91,12 +94,12 @@ export function Harness({ data, frame, os, osc, app, showSwitch }: HarnessProps)
     { id: "os-1280", label: "OmerOS · wide · 1280 × 800", width: 1280, height: 800, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
     { id: "os-1210", label: "OmerOS · wide · 1210 × 756 (a 1440 × 900 viewport)", width: 1210, height: 756, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
     { id: "os-960", label: "OmerOS · wide · 960 × 600 (smallest design size)", width: 960, height: 600, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
-    { id: "os-compact", label: "OmerOS · compact · 390 × 844", width: 390, height: 844, compact: true, node: <OmerOS apps={data.computer} active={compactRole} name={data.name} layout="compact" /> },
+    { id: "os-compact", label: `OmerOS · compact · ${cw} × ${ch}`, width: cw, height: ch, compact: true, node: <OmerOS apps={data.computer} active={compactRole} name={data.name} layout="compact" /> },
     {
       id: "os-compact-role",
-      label: "OmerOS · compact · 390 × 844 · a role",
-      width: 390,
-      height: 844,
+      label: `OmerOS · compact · ${cw} × ${ch} · a role`,
+      width: cw,
+      height: ch,
       compact: true,
       node: <OmerOS apps={data.computer} active={osc ?? firstRole} name={data.name} layout="compact" />,
     },
