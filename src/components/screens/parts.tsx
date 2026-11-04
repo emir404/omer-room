@@ -19,7 +19,10 @@ export const hostOf = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "").r
 /** A caption that is just an address ("witharc.co") says the image is that website. */
 const isAddress = (caption: string | undefined) => !!caption && /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(caption);
 
-/** A line of copy that is only a placeholder ("TODO(Ömer): …"): drawn as a quiet note, not as copy. */
+/**
+ * A line of copy. Only a placeholder ("TODO(Ömer): …")? Then a quiet note, not copy. A dash never
+ * starts a line: the space before " — " is a non-breaking one.
+ */
 export function Copy({ text, className, noteClass }: { text: string; className: string; noteClass?: string }) {
   if (isTodo(text)) {
     return (
@@ -30,7 +33,7 @@ export function Copy({ text, className, noteClass }: { text: string; className: 
   }
   return (
     <p className={className}>
-      <Text>{text}</Text>
+      <Text>{text.replace(/ — /g, " — ")}</Text>
     </p>
   );
 }
@@ -103,10 +106,12 @@ export function Story({ html, className }: { html: string; className?: string })
 /**
  * Screenshots at their own proportions, reserved before they load, never loaded before they're
  * needed. `browser`: a screenshot captioned with an address sits in the kit's browser chrome (the
- * address in its field) rather than as a bare slab of someone's page. `slot`: with no images yet,
- * a tidy "to add" tile holds their place.
+ * address in its field) rather than as a bare slab of someone's page. `crop`: at phone width a
+ * landscape page would shrink to unreadable type, so it is shown square, cropped to its upper
+ * middle where a page's headline sits. `slot`: with no images yet, a tidy "to add" tile holds
+ * their place.
  */
-export function Shots({ images, className, browser, slot }: { images: ScreenImage[]; className?: string; browser?: boolean; slot?: string }) {
+export function Shots({ images, className, browser, crop, slot }: { images: ScreenImage[]; className?: string; browser?: boolean; crop?: boolean; slot?: boolean }) {
   if (!images.length) {
     return slot ? (
       <div className={`shots-slot${className ? ` ${className}-slot` : ""}`}>
@@ -114,15 +119,16 @@ export function Shots({ images, className, browser, slot }: { images: ScreenImag
         <p>
           <mark className="todo">screenshots or photos</mark>
         </p>
-        <p className="shots-slot-path">{slot}</p>
       </div>
     ) : null;
   }
   return (
     <ul className={`shots${className ? ` ${className}` : ""}`}>
       {images.map((image) => {
+        const landscape = !!image.width && !!image.height && image.width > image.height;
+        const frame = crop && landscape ? { aspectRatio: "1 / 1" } : image.width && image.height ? { aspectRatio: `${image.width} / ${image.height}` } : undefined;
         const img = (
-          <span className="shot-frame" style={image.width && image.height ? { aspectRatio: `${image.width} / ${image.height}` } : undefined}>
+          <span className="shot-frame" data-crop={crop && landscape ? "" : undefined} style={frame}>
             {/* eslint-disable-next-line @next/next/no-img-element -- laid out inside a transformed screen; the file is already a sized WebP */}
             <img src={image.src} alt={image.alt} width={image.width} height={image.height} loading="lazy" decoding="async" draggable={false} />
           </span>

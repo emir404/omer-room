@@ -159,20 +159,50 @@
 .os-side .ss-row[data-selected] .os-side-icon {
   color: var(--ss-accent);
 }
+/* the owner at the sidebar's foot, as a Mac app shows its account: who, where, and a way to write */
 .os-owner {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   margin-top: auto;
-  padding: 8px 10px 2px;
+  padding: 10px 6px 0 10px;
+  border-top: 1px solid rgb(0 0 0 / 0.06);
 }
 .os-owner .ss-avatar {
   will-change: auto;
+}
+.os-owner-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
 }
 .os-owner-name {
   font-size: 13px;
   line-height: 17px;
   font-weight: 550;
+}
+.os-owner-place {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ss-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.os-owner-mail {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--os-glass);
+  box-shadow: var(--os-btn-shadow);
+  color: var(--ss-icon);
+  transition: color 0.15s;
+}
+.os-owner-mail:hover {
+  color: var(--ss-text-strong);
 }
 
 /* ---- toolbar: glass buttons with their labels under them ---- */
@@ -203,6 +233,10 @@
   line-height: 13px;
   color: var(--ss-text);
   white-space: nowrap;
+}
+/* a disabled tool dims its label with its glyph, as macOS does */
+.os-tool:has(> [aria-disabled]) .os-tool-label {
+  color: var(--ss-text-faint);
 }
 .os-cap,
 .os-round {
@@ -320,20 +354,21 @@ a.os-nav-btn:hover {
   text-wrap: pretty;
 }
 
-/* the numbers: one big, the rest as rows, on one quiet card */
+/* the numbers: one big, the rest as one ruled column beside it, on one quiet card */
 .os-nums {
   display: grid;
-  grid-template-columns: minmax(190px, 0.8fr) minmax(0, 2fr);
+  /* the big number sizes its own column, never into its rows */
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
   align-items: start;
-  gap: 10px 32px;
-  padding: 20px 24px;
+  gap: 10px 40px;
+  padding: 18px 24px;
   border-radius: 18px;
   background: #f6f5f3;
 }
 .os-nums .nums-hero {
   display: grid;
   gap: 4px;
-  padding-top: 2px;
+  padding-top: 4px;
 }
 .os-nums .nums-value {
   font-size: 44px;
@@ -350,21 +385,15 @@ a.os-nav-btn:hover {
 }
 .os-nums .nums-rows {
   list-style: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 28px;
-}
-.os-nums[data-rows="1"] .nums-rows {
-  grid-template-columns: minmax(0, 1fr);
 }
 .os-nums .nums-row {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 10px 0;
+  padding: 9px 0;
   border-top: 1px solid rgb(0 0 0 / 0.07);
 }
-.os-nums .nums-row:nth-child(-n + 2) {
+.os-nums .nums-row:first-child {
   border-top: 0;
 }
 .os-nums .nums-row-value {
@@ -430,8 +459,18 @@ a.os-nav-btn:hover {
   background: var(--ss-ink-4);
 }
 
-/* a narrow window (the smallest design sizes): the big number sits over its rows */
-@container (max-width: 620px) {
+/* the smallest windows (a 960 design): the big number a size down, still beside its rows */
+@container (max-width: 680px) {
+  .os-nums .nums-value {
+    font-size: 36px;
+    line-height: 40px;
+  }
+  .os-nums {
+    column-gap: 28px;
+  }
+}
+/* only a window narrower than any design size stacks the big number over its rows */
+@container (max-width: 520px) {
   .os-nums {
     grid-template-columns: minmax(0, 1fr);
   }

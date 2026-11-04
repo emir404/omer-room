@@ -139,6 +139,9 @@ html[data-time="night"] {
   height: 100%;
   object-fit: cover;
 }
+.shot-frame[data-crop] img {
+  object-position: 42% 0;
+}
 .shots figcaption {
   margin-top: 8px;
   font-size: 12px;
@@ -190,9 +193,6 @@ html[data-time="night"] {
 }
 .shots-slot mark.todo {
   font-size: 13px;
-}
-.shots-slot-path {
-  color: var(--ss-text-faint);
 }
 
 .link-pills {

@@ -74,7 +74,7 @@ export function PhoneUI({ apps, socials, name, tagline, email, active, awake = t
           <Home apps={apps} socials={socials} name={name} tagline={tagline} email={email} now={now} location={location} calUrl={calUrl} />
         </section>
         <section className="ph-view ph-app" aria-labelledby="ph-page-title" aria-hidden={depth === 0 || undefined} inert={depth === 0}>
-          {page ? <AppPage app={page} first={first} /> : null}
+          {page ? <AppPage app={page} first={first} others={apps.filter((a) => a.slug !== page.slug)} /> : null}
         </section>
       </div>
       <div className="ph-lock" aria-hidden={awake || undefined} inert={awake}>
@@ -158,25 +158,7 @@ function Home({ apps, socials, name, tagline, email, now, location, calUrl }: Ho
         <h3 id="ph-quests" className="ph-section-title">
           Side quests
         </h3>
-        <ul className="ph-group">
-          {apps.map((a) => {
-            const lead = metaOf(a.metrics[0]);
-            const subtitle = a.subtitle ? (lead ? `${a.subtitle} · ${lead}` : a.subtitle) : (lead ?? a.summary);
-            return (
-              <li key={a.slug}>
-                <Link href={a.href} scroll={false} className="ph-row ph-row-link">
-                  <span className="ph-row-text">
-                    <span className="ph-row-title">{a.title}</span>
-                    <span className="ph-row-sub">
-                      <Text>{subtitle}</Text>
-                    </span>
-                  </span>
-                  <ChevronRight className="ph-chevron" size={17} strokeWidth={2.6} aria-hidden />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <QuestList apps={apps} />
       </section>
 
       <ul className="ph-group" aria-label="Contact">
@@ -214,6 +196,31 @@ function Home({ apps, socials, name, tagline, email, now, location, calUrl }: Ho
   );
 }
 
+/** The side quests as an inset grouped list: name, then what it is and its headline number. */
+function QuestList({ apps }: { apps: ScreenApp[] }) {
+  return (
+    <ul className="ph-group">
+      {apps.map((a) => {
+        const lead = metaOf(a.metrics[0]);
+        const subtitle = a.subtitle ? (lead ? `${a.subtitle} · ${lead}` : a.subtitle) : (lead ?? a.summary);
+        return (
+          <li key={a.slug}>
+            <Link href={a.href} scroll={false} className="ph-row ph-row-link">
+              <span className="ph-row-text">
+                <span className="ph-row-title">{a.title}</span>
+                <span className="ph-row-sub">
+                  <Text>{subtitle}</Text>
+                </span>
+              </span>
+              <ChevronRight className="ph-chevron" size={17} strokeWidth={2.6} aria-hidden />
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** An iOS contact field: a small label over its value. Disabled while the value is a placeholder. */
 function Field({ label, disabled, children }: { label: string; disabled?: boolean; children: ReactNode }) {
   return (
@@ -226,7 +233,7 @@ function Field({ label, disabled, children }: { label: string; disabled?: boolea
 
 /* ------------------------------------------------------------------ an app page */
 
-function AppPage({ app, first }: { app: ScreenApp; first: string }) {
+function AppPage({ app, first, others }: { app: ScreenApp; first: string; others: ScreenApp[] }) {
   const [hero, ...rest] = app.metrics;
   return (
     <article className="ph-page" key={app.slug}>
@@ -270,10 +277,18 @@ function AppPage({ app, first }: { app: ScreenApp; first: string }) {
         </section>
       ) : null}
 
-      <Shots images={app.images} className="ph-shots" />
+      <Shots images={app.images} className="ph-shots" crop />
       <Story html={app.html} className="ph-story" />
       <LinkPills links={app.links} className="ph-links" />
-      {app.images.length ? null : <Shots images={[]} className="ph-shots" slot={`Add them under images in content/phone/${app.slug}.md`} />}
+      {app.images.length ? null : <Shots images={[]} className="ph-shots" slot />}
+      {others.length ? (
+        <section className="ph-section" aria-labelledby={`ph-more-${app.slug}`}>
+          <h3 id={`ph-more-${app.slug}`} className="ph-section-title">
+            More side quests
+          </h3>
+          <QuestList apps={others} />
+        </section>
+      ) : null}
       {app.cta ? (
         <div className="ph-cta-bar">
           <Link href={app.cta.href} scroll={false} className="ph-cta">

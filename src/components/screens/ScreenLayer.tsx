@@ -95,7 +95,7 @@ export function ScreenLayer({ data }: { data: SceneData }) {
     <div className="screens" data-docked={docked ?? undefined} data-ready={ready ? "1" : "0"}>
       {docked ? <button type="button" className="screens-backdrop" aria-label="Step back into the room" tabIndex={-1} onClick={() => navigate("/")} /> : null}
       <Slot id="computer" width={computer.width} height={computer.height} docked={docked === "computer"} label="Ömer's computer">
-        <OmerOS apps={data.computer} active={osActive} name={data.name} layout={compact ? "compact" : "wide"} />
+        <OmerOS apps={data.computer} active={osActive} name={data.name} location={data.location} layout={compact ? "compact" : "wide"} />
       </Slot>
       <Slot id="phone" width={PHONE.width} height={PHONE.height} docked={docked === "phone"} label="Ömer's phone">
         <PhoneUI

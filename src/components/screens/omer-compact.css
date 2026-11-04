@@ -92,12 +92,13 @@
 .osc-glass:active {
   background: #e5e5ea;
 }
+/* on a box wider than a phone the controls keep to the content's column (560 wide, centred) */
 .osc-back {
-  left: var(--osc-side);
+  left: max(var(--osc-side), calc(50% - 280px));
   animation: osc-fade 0.3s ease both;
 }
 .osc-close {
-  right: max(16px, env(safe-area-inset-right));
+  right: max(16px, env(safe-area-inset-right), calc(50% - 280px));
 }
 @keyframes osc-fade {
   from {
@@ -343,4 +344,69 @@
   background: #fff;
   font-size: 15px;
   font-weight: 550;
+}
+
+/* the other roles, at the end of a page: an inset grouped list on to the next */
+.osc-more {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+.osc-more-title {
+  padding: 0 16px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--osc-secondary);
+}
+.osc-more-list {
+  list-style: none;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+}
+.osc-more-list > li + li {
+  position: relative;
+}
+.osc-more-list > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--osc-sep);
+}
+.osc-more-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 14px 10px 16px;
+  color: inherit;
+  transition: background 0.15s;
+}
+.osc-more-row:active {
+  background: #e5e5ea;
+}
+.osc-more-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.osc-more-name {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 550;
+}
+.osc-more-role {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.osc-more-role mark.todo {
+  font-size: 13px;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Folder, Globe, Search, Wifi, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Folder, Globe, Mail, Search, Wifi, X } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/kit/parts/Avatar";
@@ -22,6 +22,8 @@ export interface OmerOSProps {
   active: string | null;
   /** The owner, at the foot of the sidebar. */
   name: string;
+  /** site.json `location`, under the owner's name. */
+  location?: string;
   /**
    * wide: a macOS 26 desktop at 16:10 (design width 960–1440). compact: the same computer as an
    * iOS-style navigation stack at phone size (the screen fills the viewport, design size = viewport).
@@ -35,9 +37,9 @@ export interface OmerOSProps {
  * whose sidebar lists every role and whose page is that role's case study. Compact is a redesign
  * for phones (OmerCompact), not a squeeze.
  */
-export function OmerOS({ apps, active, name, layout = "wide" }: OmerOSProps) {
+export function OmerOS({ apps, active, name, location, layout = "wide" }: OmerOSProps) {
   if (!apps.length) return null;
-  return layout === "compact" ? <OmerCompact apps={apps} active={active} name={name} /> : <OmerDesktop apps={apps} active={active} name={name} />;
+  return layout === "compact" ? <OmerCompact apps={apps} active={active} name={name} /> : <OmerDesktop apps={apps} active={active} name={name} location={location} />;
 }
 
 /** One control in the tall (icon-and-label) toolbar: the glass button, its label under it. */
@@ -54,7 +56,7 @@ function Tool({ label, children }: { label: string; children: ReactNode }) {
 
 const glyph = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 
-function OmerDesktop({ apps, active, name }: Omit<OmerOSProps, "layout">) {
+function OmerDesktop({ apps, active, name, location }: Omit<OmerOSProps, "layout">) {
   const index = Math.max(0, apps.findIndex((a) => a.slug === active));
   const shown = apps[index]!;
   const prev = apps[index - 1];
@@ -89,8 +91,14 @@ function OmerDesktop({ apps, active, name }: Omit<OmerOSProps, "layout">) {
         })}
       </ul>
       <div className="os-owner">
-        <Avatar name={name} tone="ios" size={28} />
-        <span className="os-owner-name">{name}</span>
+        <Avatar name={name} tone="ios" size={30} />
+        <span className="os-owner-text">
+          <span className="os-owner-name">{name}</span>
+          {location ? <span className="os-owner-place">{location}</span> : null}
+        </span>
+        <Link href="/contact" scroll={false} className="os-owner-mail" aria-label={`Contact ${name.split(" ")[0] ?? name}`} title="Contact">
+          <Mail size={15} strokeWidth={1.75} aria-hidden />
+        </Link>
       </div>
     </nav>
   );
@@ -178,7 +186,7 @@ function OmerDesktop({ apps, active, name }: Omit<OmerOSProps, "layout">) {
             <Shots images={shown.images} className="os-shots" browser />
             <Story html={shown.html} className="os-story" />
             <LinkPills links={shown.links} className="os-links" />
-            {shown.images.length ? null : <Shots images={[]} className="os-shots" slot={`Add them under images in content/computer/${shown.slug}.md`} />}
+            {shown.images.length ? null : <Shots images={[]} className="os-shots" slot />}
           </article>
         </div>
       </Window>

@@ -40,21 +40,24 @@
 
 /* ------------------------------------------------------------------ wake and sleep */
 
-/* waking: the lock screen goes up and away while his card settles in from a touch larger, the
-   way iOS unlocks to the home screen. Sleeping: the lock screen simply comes back on, in place */
+/* the lock screen is an opaque sheet over his card, as on iOS: waking, it slides up and off while
+   the card settles in from a touch larger; sleeping, it slides back down over the card. Nothing
+   fades, so the two screens' words never show through each other */
 .ph-views {
   position: absolute;
   inset: 0;
-  opacity: 0;
+  /* its own ink: asleep, the kit's dark screen turns everything white, and the card is still
+     on screen under the sheet as it comes down */
+  color: #000;
   visibility: hidden;
-  transform: scale(1.06);
-  transition: opacity 0.2s ease, transform 0s 0.3s, visibility 0s 0.3s;
+  transform: scale(1.04);
+  /* holds as it is until the sheet has covered it */
+  transition: transform 0s 0.45s, visibility 0s 0.45s;
 }
 .ph[data-awake] .ph-views {
-  opacity: 1;
   visibility: visible;
   transform: none;
-  transition: opacity 0.35s ease 0.08s, transform 0.6s var(--ph-push) 0.04s, visibility 0s;
+  transition: transform 0.6s var(--ph-push), visibility 0s;
 }
 /* content scrolls up under the status bar and fades there, as iOS's scroll edge does */
 .ph-views::before {
@@ -74,13 +77,12 @@
   z-index: 1;
   overflow: hidden;
   background: var(--omer-wall);
-  transition: opacity 0.3s ease, visibility 0s;
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
 }
 .ph[data-awake] .ph-lock {
-  opacity: 0;
   visibility: hidden;
   transform: translateY(-100%);
-  transition: transform 0.55s var(--ph-push), opacity 0.3s ease 0.2s, visibility 0s 0.55s;
+  transition: transform 0.55s var(--ph-push), visibility 0s 0.55s;
 }
 /* the lock screen's two buttons: a flat dim disc (no live blur on a screen that is re-projected
    every frame; the wallpaper behind them is a smooth gradient, so they read the same) */
@@ -187,9 +189,9 @@ a.ph-action:active {
 .ph-action[aria-disabled] {
   color: var(--ph-secondary);
 }
+/* a mark keeps its own colours even while its link is still to add (brands.md); it only dims */
 .ph-action[aria-disabled] .ph-mark {
-  opacity: 0.38;
-  filter: grayscale(1);
+  opacity: 0.45;
 }
 .ph-mark {
   display: block;
@@ -290,9 +292,6 @@ a.ph-action:active {
 }
 .ph-tint {
   color: var(--ss-accent-text);
-}
-.ph-field[aria-disabled] .ph-field-label {
-  color: var(--ph-secondary);
 }
 
 /* ------------------------------------------------------------------ an app page */

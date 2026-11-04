@@ -67,7 +67,7 @@ export function OmerCompact({ apps, active, name }: { apps: ScreenApp[]; active:
       </section>
 
       <section className="osc-view osc-page" aria-labelledby="osc-page-title" aria-hidden={depth === 0 || undefined} inert={depth === 0}>
-        {page ? <CompactRole app={page} /> : null}
+        {page ? <CompactRole app={page} others={apps.filter((a) => a.slug !== page.slug)} /> : null}
       </section>
 
       <div className="osc-bar">
@@ -84,7 +84,7 @@ export function OmerCompact({ apps, active, name }: { apps: ScreenApp[]; active:
   );
 }
 
-function CompactRole({ app }: { app: ScreenApp }) {
+function CompactRole({ app, others }: { app: ScreenApp; others: ScreenApp[] }) {
   const site = liveLinks(app)[0];
   return (
     <article className="osc-role" key={app.slug}>
@@ -96,7 +96,7 @@ function CompactRole({ app }: { app: ScreenApp }) {
         <Copy text={app.summary} className="osc-role-summary" noteClass="osc-summary-todo" />
       </header>
       <Numbers items={app.metrics} className="osc-nums" />
-      <Shots images={app.images} className="osc-shots" />
+      <Shots images={app.images} className="osc-shots" crop />
       <Story html={app.html} className="osc-story" />
       {site ? (
         <a className="osc-site" href={site.url} target="_blank" rel="noopener noreferrer">
@@ -105,7 +105,31 @@ function CompactRole({ app }: { app: ScreenApp }) {
         </a>
       ) : null}
       <LinkPills links={app.links.filter((link) => link !== site)} className="osc-links" />
-      {app.images.length ? null : <Shots images={[]} className="osc-shots" slot={`Add them under images in content/computer/${app.slug}.md`} />}
+      {app.images.length ? null : <Shots images={[]} className="osc-shots" slot />}
+      {others.length ? (
+        <section className="osc-more" aria-labelledby={`osc-more-${app.slug}`}>
+          <h3 id={`osc-more-${app.slug}`} className="osc-more-title">
+            More work
+          </h3>
+          <ul className="osc-more-list">
+            {others.map((a) => (
+              <li key={a.slug}>
+                <Link href={a.href} scroll={false} className="osc-more-row">
+                  <span className="osc-more-text">
+                    <span className="osc-more-name">{a.title}</span>
+                    {a.role ? (
+                      <span className="osc-more-role">
+                        <Text>{a.role}</Text>
+                      </span>
+                    ) : null}
+                  </span>
+                  <ChevronRight className="osc-chevron" size={17} strokeWidth={2.4} aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </article>
   );
 }

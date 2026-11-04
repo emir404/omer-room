@@ -90,10 +90,10 @@ export function Harness({ data, frame, os, osc, app, size, showSwitch }: Harness
   const firstRole = data.computer[0]?.slug ?? null;
 
   const frames: Frame[] = [
-    { id: "os-1440", label: "OmerOS · wide · 1440 × 900 (largest design size)", width: 1440, height: 900, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
-    { id: "os-1280", label: "OmerOS · wide · 1280 × 800", width: 1280, height: 800, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
-    { id: "os-1210", label: "OmerOS · wide · 1210 × 756 (a 1440 × 900 viewport)", width: 1210, height: 756, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
-    { id: "os-960", label: "OmerOS · wide · 960 × 600 (smallest design size)", width: 960, height: 600, node: <OmerOS apps={data.computer} active={role} name={data.name} layout="wide" /> },
+    { id: "os-1440", label: "OmerOS · wide · 1440 × 900 (largest design size)", width: 1440, height: 900, node: <OmerOS apps={data.computer} active={role} name={data.name} location={data.location} layout="wide" /> },
+    { id: "os-1280", label: "OmerOS · wide · 1280 × 800", width: 1280, height: 800, node: <OmerOS apps={data.computer} active={role} name={data.name} location={data.location} layout="wide" /> },
+    { id: "os-1210", label: "OmerOS · wide · 1210 × 756 (a 1440 × 900 viewport)", width: 1210, height: 756, node: <OmerOS apps={data.computer} active={role} name={data.name} location={data.location} layout="wide" /> },
+    { id: "os-960", label: "OmerOS · wide · 960 × 600 (smallest design size)", width: 960, height: 600, node: <OmerOS apps={data.computer} active={role} name={data.name} location={data.location} layout="wide" /> },
     { id: "os-compact", label: `OmerOS · compact · ${cw} × ${ch}`, width: cw, height: ch, compact: true, node: <OmerOS apps={data.computer} active={compactRole} name={data.name} layout="compact" /> },
     {
       id: "os-compact-role",
