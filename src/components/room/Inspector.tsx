@@ -44,6 +44,8 @@ interface Held {
   id: string;
   node: Object3D;
   rest: { position: Vector3; quaternion: Quaternion; scale: Vector3 };
+  /** Turns the side to show toward the item's +X first: a binder shows its labeled spine. */
+  present: Quaternion;
   /** The item's middle in its own space, and how big it is (world). */
   center: Vector3;
   radius: number;
@@ -78,6 +80,14 @@ function measure(node: Object3D): { center: Vector3; radius: number } {
   const scale = node.getWorldScale(new Vector3());
   const radius = (box.getSize(new Vector3()).multiply(scale).length() / 2) || 0.1;
   return { center, radius };
+}
+
+function findSlot(node: Object3D, prefix: string): Object3D | null {
+  let found: Object3D | null = null;
+  node.traverse((child) => {
+    if (!found && child.name.startsWith(prefix)) found = child;
+  });
+  return found;
 }
 
 /** A realtime-lit twin of a room material: same color and picture, lit by the studio cube.
@@ -146,6 +156,14 @@ export function Inspector() {
     const node = index?.items.get(id);
     if (!node || !index) return null;
     const { center, radius } = measure(node);
+    // a binder's front board is blank: what you'd show someone is its spine, with the label
+    const present = new Quaternion();
+    const label = findSlot(node, "slot__binder__");
+    if (label) {
+      const box = new Box3().setFromObject(label);
+      const toLabel = node.worldToLocal(box.getCenter(new Vector3())).sub(center).setY(0);
+      if (toLabel.lengthSq() > 1e-8) present.setFromUnitVectors(toLabel.normalize(), new Vector3(1, 0, 0));
+    }
     const meshes: Held["meshes"] = [];
     node.traverse((child) => {
       const mesh = child as Mesh;
@@ -165,6 +183,7 @@ export function Inspector() {
       id,
       node,
       rest: { position: node.position.clone(), quaternion: node.quaternion.clone(), scale: node.scale.clone() },
+      present,
       center,
       radius,
       t: 0,
@@ -229,7 +248,7 @@ export function Inspector() {
     const right = tmp.right.crossVectors(tmp.up, face).normalize();
     const up = tmp.c.crossVectors(face, right).normalize();
     tmp.m.makeBasis(face, up, tmp.d.crossVectors(face, up));
-    out.quaternion.setFromRotationMatrix(tmp.m);
+    out.quaternion.setFromRotationMatrix(tmp.m).multiply(h.present);
     // a three-quarter turn plus whatever you've dragged it to
     tmp.q.setFromAxisAngle(up, BASE_YAW + h.yaw);
     tmp.q2.setFromAxisAngle(right, -(BASE_PITCH + h.pitch));

@@ -2,6 +2,10 @@
 title: Research with Prof. Edison Tse
 spine: Research
 shelf: school
+# TODO(Ömer): the paper's real title (it's printed on the bound paper on the shelf)
+paper:
+  title: "AI and the Boundaries of the Firm: Coase, Venture Capital and Endogenous Startup Valuations"
+  note: "Mentored by Prof. Edison Tse, Stanford University"
 order: 3
 role: Student Researcher
 period: Grade 10 school break · 30 hrs/week for 12 weeks

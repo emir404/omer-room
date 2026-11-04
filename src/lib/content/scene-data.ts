@@ -37,7 +37,7 @@ export interface SceneBook {
  *  your hand (its prop, else its binder: school items get one each, in order) and frames sections. */
 export interface SceneShelf {
   sections: { id: ShelfId; label: string; title: string; href: string }[];
-  items: { slug: string; section: Exclude<ShelfId, "books">; title: string; spine: string; role: string; href: string }[];
+  items: { slug: string; section: Exclude<ShelfId, "books">; title: string; spine: string; role: string; href: string; paper?: { title: string; note?: string } }[];
 }
 
 /** A content image with its pixel size (read from the file), so the screens can lay it out before it loads. */
@@ -160,6 +160,7 @@ export function getSceneData(): SceneData {
         spine: item.data.spine ?? item.data.title,
         role: item.data.role,
         href: chapterHref("shelf", item.slug),
+        ...(item.data.paper ? { paper: item.data.paper } : {}),
       })),
     },
     photos: items

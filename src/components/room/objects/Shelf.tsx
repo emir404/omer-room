@@ -160,14 +160,15 @@ export function Shelf({ books, shelf, photos }: { books: SceneBook[]; shelf: Sce
         });
       }
 
-      const research = shelf.items.find((i) => i.slug === "edison-tse-research");
+      // the bound paper's title page: the shelf item the paper prop belongs to says what's on it
+      const paperItem = shelf.items.find((i) => i.slug === map.byItem.get("paper_research")?.slug) ?? shelf.items.find((i) => i.paper);
       for (const page of index.slots.page) {
         const { canvas, ctx } = makeCanvas(PAGE_W, PAGE_H);
         ctx.imageSmoothingEnabled = true;
         drawTitlePage(ctx, {
-          title: "AI and the Boundaries of the Firm: Coase, Venture Capital and Endogenous Startup Valuations",
+          title: paperItem?.paper?.title ?? paperItem?.title ?? "",
           byline: "Ömer Öztok",
-          note: research ? "Mentored by Prof. Edison Tse, Stanford University" : "",
+          note: paperItem?.paper?.note ?? "",
           date: "Working draft",
         });
         const texture = canvasTexture(canvas, false);

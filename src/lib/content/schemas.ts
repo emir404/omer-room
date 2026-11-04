@@ -99,6 +99,8 @@ export const ShelfItemSchema = z.object({
   title: z.string().min(1),
   /** The word on its binder's spine, if it gets one (school items do). Defaults to the title. */
   spine: z.string().min(1).max(20).optional(),
+  /** What's printed on its title page, for a paper on the shelf (the research paper). */
+  paper: z.object({ title: z.string().min(1).max(120), note: z.string().optional() }).optional(),
   shelf: z.enum(["school", "olympiad", "mun"]),
   order: z.number(),
   role: z.string().min(1),
