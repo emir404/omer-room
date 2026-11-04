@@ -21,6 +21,7 @@ pnpm shots            # screenshots of every chapter → test-results/shots/ (se
 PW_GPU=1 pnpm shots   # same, rendered on the Mac's GPU (Metal) instead of SwiftShader
 pnpm covers           # real book covers from Open Library (by isbn, else title + author) + spine colors
 PW_GPU=1 pnpm perf    # load, frame pacing, draw calls, idle frames (server on :3100); PERF_PHONE=1 for a phone
+pnpm posters          # the loader's stills of the room, from the live 3D (server on :3100); after art changes
 pnpm art              # Blender art pipeline: sources → views → textures → room → bake → export → assets
 pnpm art preview -- day room 128   # Cycles renders from the site's cameras → art/previews/
 pnpm assets           # art/out → public/3d (meshopt GLB + KTX2 lightmaps) + src/lib/assets.manifest.json
@@ -45,7 +46,9 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
 - `src/components/caption/` — `CaptionHost` + `views.tsx`: the words beside each object, from the URL and
   `getChapterData()` (src/lib/content/chapters.ts). `src/components/panels/ui.tsx` — shared content blocks.
 - `src/components/screens/` — the live screens: `ScreenLayer` (DOM behind the canvas, docks when the
-  camera arrives), `OmerOS` (the desktop: a "Work" app window), `PhoneUI` (contact card + apps).
+  camera arrives; on phones the computer docks full-screen), `OmerOS` (a macOS 26 desktop with the Work
+  app), `OmerCompact` (the computer at phone size), `PhoneUI` (lock screen asleep, his card awake, side
+  quest pages). `src/app/dev/screens` — a dev-only harness for both (404 in production).
 - `src/components/text/TextView` — the whole site on one page (grouped rows that open to the story).
 - `src/components/kit/` — the vendored stageshow kit (MIT): tokens, `Window`, `Phone`, `Row`, `Avatar`.
   `src/components/ui/Row` is a server-safe copy of its Row. UI follows `.agents/skills/stageshow`.
@@ -101,4 +104,9 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
   globe (varnish, pins, drag to spin), labeled chapter binders + real book covers, letter shown 1:1,
   3D/Text switch as the only UI, `/text` rebuilt as grouped rows. The phone is clickable again (the
   smallest click proxy wins).
-- Phase 3: polish — walk-in intro, loader dissolve, sound ambience, ball physics, inspectables, OG images.
+- Phase 2.6 (this round): done — no panels (captions over a dimmed room, Spotlight); pick things up
+  (Inspector: medals, trophy, binders, placard, books with real covers; drag to turn, click outside to
+  put back); a new two-bay library (42 items, section plates, cabinet, 24 real books, `pnpm covers`);
+  macOS 26 desktop + compact computer + iPhone card/lock screen (stageshow); the mailbox opens; the
+  window's day/night switch; loader stills (`pnpm posters`); a still room draws no frames (`pnpm perf`).
+- Phase 3: polish — walk-in intro, sound ambience, ball physics, OG images, real photos and links.
