@@ -54,13 +54,15 @@ function prepare(scene: Object3D, lightmaps: Map<string, LightmapBinding>, envMa
     const extras = mesh.userData as NodeExtras & { sourceMaterial?: MeshStandardMaterial };
     // always build from the GLB's material (prepare can run twice on the same scene in dev)
     const source = (extras.sourceMaterial ??= mesh.material as MeshStandardMaterial);
+    // the mailbox opens: its bake (door shut, box dark inside) would be wrong once it does
+    const live = index.ownerOf.get(mesh) === "contact";
     const material = createRoomMaterial({
       color: source.color.clone(),
       map: source.map ?? null,
       roughness: source.roughness,
       metalness: source.metalness,
       glow: extras.glow,
-      lightmap: extras.bake ? (lightmaps.get(extras.bake) ?? null) : null,
+      lightmap: extras.bake && !live ? (lightmaps.get(extras.bake) ?? null) : null,
       envMap,
     });
     mesh.material = material;
@@ -245,7 +247,8 @@ export function Room() {
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (e.delta > 8) return; // a drag/swipe, not a click
-    if (useRoom.getState().holding) return;
+    // something in your hand: the Inspector handles clicks (and the one that puts it back is spent)
+    if (useRoom.getState().holding || performance.now() - overlay.clickHandledAt < 400) return;
     const target = resolveTarget(index, e.intersections);
     if (!target) return;
     const { navigate } = useRoom.getState();

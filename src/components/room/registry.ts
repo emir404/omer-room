@@ -12,7 +12,9 @@ export const overlay: {
   selection: HTMLElement | null;
   /** A hovered sub-target: a thing on the shelf (the whole item), a section plate, a globe pin. */
   subNode: Object3D | null;
-} = { selection: null, subNode: null };
+  /** When a click was already handled (putting back what you held): the room ignores it. */
+  clickHandledAt: number;
+} = { selection: null, subNode: null, clickHandledAt: -1 };
 
 /**
  * A live screen UI (ScreenLayer) laid out at `width` × `height` CSS px. The scene maps it onto its

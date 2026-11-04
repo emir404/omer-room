@@ -23,6 +23,7 @@ import {
 } from "three";
 import { captionInset, isDesktopWidth, LAYOUT } from "@/lib/layout";
 import { useRoom } from "@/lib/store";
+import { overlay } from "./registry";
 import { useSceneIndex } from "./scene-index";
 import { useShelfMap } from "./shelf-map";
 
@@ -36,7 +37,7 @@ import { useShelfMap } from "./shelf-map";
  */
 
 const FLY = 0.85; // seconds, there or back
-const BASE_YAW = -0.42; // a three-quarter view: the face and one side
+const BASE_YAW = 0.42; // a three-quarter view: the face and its left side (a book's spine, a binder's label)
 const BASE_PITCH = 0.12;
 
 interface Held {
@@ -286,6 +287,8 @@ export function Inspector() {
         if (raycaster.intersectObject(h.node, true).length) return;
       }
       const back = document.querySelector<HTMLAnchorElement>(".cap-live [data-back]")?.getAttribute("href") ?? "/shelf";
+      // this click is spent: it mustn't also pick up whatever is behind (Room.tsx's onClick)
+      overlay.clickHandledAt = performance.now();
       useRoom.getState().navigate(back);
     };
     canvas.addEventListener("pointerdown", onDown);
