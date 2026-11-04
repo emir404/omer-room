@@ -6,7 +6,7 @@ import type { FocusId, ObjectId } from "./scene-contract";
 import type { TimeOverride } from "./time-of-day";
 
 /**
- * Shared state between the DOM layer (panels, pins, screens) and the R3F scene.
+ * Shared state between the DOM layer (captions, pins, screens) and the R3F scene.
  * zustand works across both React roots, so either side can read/write.
  */
 
@@ -22,6 +22,10 @@ export interface RoomState extends RouteState {
   hoverSource: "pointer" | "keyboard" | null;
   /** A hovered thing inside the focused object (a book spine, a globe pin). */
   hoveredSub: { key: string; label: string } | null;
+  /** The shelf thing you clicked (an item id): what to put in your hand when its URL opens. */
+  picked: string | null;
+  /** What's in your hand right now (an item id; set by the 3D Inspector). */
+  holding: string | null;
   /** Incremented to throw the basketball. */
   shotRequest: number;
   cameraAtRest: boolean;
@@ -48,6 +52,8 @@ export const useRoom = create<RoomState>(() => ({
   hovered: null,
   hoverSource: null,
   hoveredSub: null,
+  picked: null,
+  holding: null,
   shotRequest: 0,
   cameraAtRest: false,
   lastComputerApp: null,

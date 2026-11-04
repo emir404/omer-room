@@ -14,3 +14,17 @@ export async function objectCenter(page: Page, id: string) {
   if (!point) throw new Error(`object "${id}" is not on screen`);
   return point;
 }
+
+type RoomTest = { item(id: string): { x: number; y: number } | null; holding(): string | null };
+
+/** What's in your hand (an item id), via the test-mode hook in Projector.tsx. */
+export async function holding(page: Page) {
+  return page.evaluate(() => (window as unknown as { __roomTest?: RoomTest }).__roomTest?.holding() ?? null);
+}
+
+/** Screen-space center of a thing on the shelf. */
+export async function itemCenter(page: Page, id: string) {
+  const point = await page.evaluate((itemId) => (window as unknown as { __roomTest?: RoomTest }).__roomTest?.item(itemId) ?? null, id);
+  if (!point) throw new Error(`item "${id}" is not on screen`);
+  return point;
+}

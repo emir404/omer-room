@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { chapterHref, objectHref } from "../routes";
 import type { ObjectId } from "../scene-contract";
 import { getBooks, getComputerApps, getGlobePlaces, getLetterPage, getObjects, getPhoneApps, getShelfItems, getShelfMeta, getSite, getWindowPage } from "./load";
@@ -24,18 +26,17 @@ export interface SceneBook {
   color: string;
   text: string;
   href: string;
-  /** The real cover, if there is one (the spine color comes from it at runtime). */
-  cover: string | null;
+  /** The real cover's textures for the shelf (`pnpm covers` makes them): 512 px for desktops,
+   *  256 px for phones. Null until the book has a cover. */
+  cover: { desktop: string; mobile: string } | null;
   featured: boolean;
 }
 
-/** A labeled binder on the shelf: opens /shelf/<id>. */
-export interface SceneBinder {
-  id: ShelfId;
-  label: string;
-  title: string;
-  count: number;
-  href: string;
+/** The shelf's sections and what's in them: the 3D names the section plates, puts each item in
+ *  your hand (its prop, else its binder: school items get one each, in order) and frames sections. */
+export interface SceneShelf {
+  sections: { id: ShelfId; label: string; title: string; href: string }[];
+  items: { slug: string; section: Exclude<ShelfId, "books">; title: string; spine: string; role: string; href: string }[];
 }
 
 /** Everything a screen app shows (the live desktop and phone UIs render it). */
@@ -73,7 +74,7 @@ export interface SceneData {
   socials: Site["socials"];
   objects: SceneObject[];
   books: SceneBook[];
-  binders: SceneBinder[];
+  shelf: SceneShelf;
   photos: { src: string; alt: string }[];
   places: ScenePlace[];
   computer: ScreenApp[];
@@ -93,6 +94,16 @@ function textOn(hex: string): string {
   return luminance > 0.6 ? "#1E1B16" : "#F4EEE3";
 }
 
+
+/** public/content/books/<name>.webp and .sm.webp next to a cover, else the cover itself. */
+export function coverTextures(src: string | undefined): SceneBook["cover"] {
+  if (!src) return null;
+  const base = src.replace(/\.(jpe?g|png|webp)$/i, "");
+  const exists = (url: string) => fs.existsSync(path.join(process.cwd(), "public", url));
+  const desktop = exists(`${base}.webp`) ? `${base}.webp` : src;
+  const mobile = exists(`${base}.sm.webp`) ? `${base}.sm.webp` : desktop;
+  return { desktop, mobile };
+}
 
 export function getSceneData(): SceneData {
   const site = getSite();
@@ -121,17 +132,21 @@ export function getSceneData(): SceneData {
         color,
         text: b.data.spine?.text ?? textOn(color),
         href: chapterHref("shelf", b.slug),
-        cover: b.data.cover?.src ?? null,
+        cover: coverTextures(b.data.cover?.src),
         featured: b.data.featured,
       };
     }),
-    binders: getShelfMeta().shelves.map((shelf) => ({
-      id: shelf.id,
-      label: shelf.label,
-      title: shelf.title,
-      count: shelf.id === "books" ? books.length : items.filter((i) => i.data.shelf === shelf.id).length,
-      href: chapterHref("shelf", shelf.id),
-    })),
+    shelf: {
+      sections: getShelfMeta().shelves.map((shelf) => ({ id: shelf.id, label: shelf.label, title: shelf.title, href: chapterHref("shelf", shelf.id) })),
+      items: items.map((item) => ({
+        slug: item.slug,
+        section: item.data.shelf,
+        title: item.data.title,
+        spine: item.data.spine ?? item.data.title,
+        role: item.data.role,
+        href: chapterHref("shelf", item.slug),
+      })),
+    },
     photos: items
       .filter((item) => item.data.shelf === "mun")
       .flatMap((item) => item.data.images.map((img) => ({ src: img.src, alt: img.alt }))),

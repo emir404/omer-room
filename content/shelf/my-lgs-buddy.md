@@ -1,5 +1,6 @@
 ---
 title: My LGS Buddy
+spine: My LGS Buddy
 shelf: school
 order: 2
 role: Founding President (grades 9–10), Advisor (grades 11–12)

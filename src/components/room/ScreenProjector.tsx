@@ -19,7 +19,7 @@ import { useSceneIndex } from "./scene-index";
 
 /** Screen corners in local space, from the UVs: P = O + u·A + v·B fitted over every vertex. glTF UVs
  *  have v pointing down, so (0,0) is the picture's top-left. Returns TL, TR, BR, BL. */
-function uvCorners(mesh: Mesh): Vector3[] {
+export function uvCorners(mesh: Mesh): Vector3[] {
   const pos = mesh.geometry.getAttribute("position") as BufferAttribute;
   const uv = mesh.geometry.getAttribute("uv") as BufferAttribute;
   let n = 0, su = 0, sv = 0, suu = 0, suv = 0, svv = 0;
@@ -119,7 +119,9 @@ export function ScreenProjector() {
       if (!slot || !mesh || !local) continue;
       const quad = local.map((c) => project(c, mesh, camera, size.width, size.height));
       let css: string;
-      if (quad.some((q) => q === null)) {
+      if (slot.docked && slot.full) {
+        css = `full|${size.width}|${size.height}`;
+      } else if (quad.some((q) => q === null)) {
         css = "hidden";
       } else if (slot.docked) {
         const xs = quad.map((q) => q!.x);
@@ -147,7 +149,13 @@ export function ScreenProjector() {
         continue;
       }
       el.style.visibility = "visible";
-      if (css.startsWith("docked|")) {
+      if (css.startsWith("full|")) {
+        const [, w, h] = css.split("|");
+        el.style.transform = "translate(0px, 0px)";
+        el.style.width = `${w}px`;
+        el.style.height = `${h}px`;
+        inner.style.zoom = "1";
+      } else if (css.startsWith("docked|")) {
         const [, x, y, w, h, zoom] = css.split("|");
         el.style.transform = `translate(${x}px, ${y}px)`;
         el.style.width = `${w}px`;

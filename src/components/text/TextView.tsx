@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Gallery, isUrl, LinkList, metaOf, Metrics, Prose, Text } from "@/components/panels/ui";
 import { Row } from "@/components/ui/Row";
 import { loadAllContent } from "@/lib/content/load";
+import { coverTextures } from "@/lib/content/scene-data";
 import type { ContentImage, ContentLink, Metric } from "@/lib/content/schemas";
 import "./text.css";
 
@@ -189,7 +190,7 @@ export function TextView() {
             lead={
               book.data.cover ? (
                 // eslint-disable-next-line @next/next/no-img-element -- a 32px thumbnail, shown as is
-                <img className="tv-cover" src={book.data.cover.src} alt="" width={28} height={42} />
+                <img className="tv-cover" src={coverTextures(book.data.cover.src)?.mobile ?? book.data.cover.src} alt="" width={28} height={42} loading="lazy" />
               ) : (
                 <span className="tv-cover" data-empty aria-hidden="true" />
               )

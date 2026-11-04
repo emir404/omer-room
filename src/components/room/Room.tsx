@@ -192,8 +192,9 @@ export function Room() {
     return () => useSceneIndex.setState({ index: null });
   }, [index]);
 
-  // highlight + day/night → materials
+  // highlight + day/night → materials (a hovered object, or a hovered thing on the shelf)
   const hovered = useRoom((s) => s.hovered);
+  const hoveredSub = useRoom((s) => s.hoveredSub);
   const nightness = useRoom((s) => s.nightness);
   const focus = useRoom((s) => s.focus);
   useEffect(() => {
@@ -202,19 +203,26 @@ export function Room() {
     if (hovered && hovered !== focus) {
       for (const m of index.objectMaterials.get(hovered) ?? []) updateRoomMaterial(m, 1, nightness);
     }
+    const item = hoveredSub?.key.startsWith("item:") ? index.items.get(hoveredSub.key.slice(5)) : undefined;
+    item?.traverse((child) => {
+      const mesh = child as Mesh;
+      if (mesh.isMesh && !Array.isArray(mesh.material)) updateRoomMaterial(mesh.material, 0.8, nightness);
+    });
     invalidate();
-  }, [index, hovered, nightness, focus, invalidate]);
+  }, [index, hovered, hoveredSub, nightness, focus, invalidate]);
 
   const apply = (target: Target | null) => {
     const key = target ? (target.kind === "object" ? target.id : target.key) : null;
     if (key && key !== lastHover.current) playSfx("hover");
     lastHover.current = key;
     if (target?.kind === "sub") {
-      overlay.subMesh = target.mesh;
+      // a thing on the shelf outlines as a whole (all its meshes), anything else by its own mesh
+      const itemId = target.key.startsWith("item:") ? target.key.slice(5) : null;
+      overlay.subNode = (itemId && index.items.get(itemId)) || target.mesh;
       useRoom.setState({ hoveredSub: { key: target.key, label: target.label } });
       setHovered(null, "pointer");
     } else {
-      overlay.subMesh = null;
+      overlay.subNode = null;
       if (useRoom.getState().hoveredSub) useRoom.setState({ hoveredSub: null });
       setHovered(target?.id ?? null, "pointer");
     }
@@ -225,6 +233,8 @@ export function Room() {
   const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     if (e.pointerType === "touch") return; // touch: no hover, pins are always visible
+    // something in your hand: the room behind it is out of reach (Inspector handles the pointer)
+    if (useRoom.getState().holding) return apply(null);
     apply(resolveTarget(index, e.intersections));
   };
 
@@ -235,11 +245,13 @@ export function Room() {
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (e.delta > 8) return; // a drag/swipe, not a click
+    if (useRoom.getState().holding) return;
     const target = resolveTarget(index, e.intersections);
     if (!target) return;
     const { navigate } = useRoom.getState();
     if (target.kind === "sub") {
       playSfx("open");
+      if (target.key.startsWith("item:")) useRoom.setState({ picked: target.key.slice(5) });
       navigate(target.href);
       return;
     }

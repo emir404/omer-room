@@ -6,10 +6,12 @@ import {
   type AnchorId,
   type DisplayId,
   type FocusId,
+  type NodeExtras,
   type ObjectId,
   type PivotId,
   parseNodeName,
   type ScreenId,
+  type SectionId,
   SLOT_KINDS,
   type SlotKind,
 } from "@/lib/scene-contract";
@@ -32,6 +34,13 @@ export interface SceneIndex {
   slots: Record<SlotKind, Mesh[]>;
   pivots: Map<PivotId, Object3D>;
   anchors: Map<AnchorId, Object3D>;
+  /** Things on the shelf you can pick up, by item id (book_03, medal_gold…): the item__ empty, or
+   *  for a GLB from before items existed, the slot mesh itself (books, binders). */
+  items: Map<string, Object3D>;
+  /** Any mesh inside an item → that item's id. */
+  itemOf: Map<Object3D, string>;
+  /** The shelf's sections: where each opening is and how big (anchor__section_<id>, extras w × h). */
+  sections: Map<SectionId, { anchor: Object3D; w: number; h: number }>;
   /** World bounds of each object's visible meshes (camera fit). */
   spheres: Map<ObjectId, Sphere>;
   roomSphere: Sphere;
@@ -58,6 +67,9 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
     slots: { book: [], cover: [], photo: [], binder: [], label: [], page: [] },
     pivots: new Map(),
     anchors: new Map(),
+    items: new Map(),
+    itemOf: new Map(),
+    sections: new Map(),
     spheres: new Map(),
     roomSphere: new Sphere(),
     ownerOf: new Map(),
@@ -100,12 +112,26 @@ export function buildSceneIndex(root: Object3D): SceneIndex {
         break;
       case "anchor":
         index.anchors.set(id as AnchorId, node);
+        if (id.startsWith("section_")) {
+          const extras = node.userData as NodeExtras;
+          index.sections.set(id.slice(8) as SectionId, { anchor: node, w: extras.w ?? 0.8, h: extras.h ?? 0.4 });
+        }
+        break;
+      case "item":
+        if (rest.length === 0) index.items.set(id, node);
         break;
       default:
         break;
     }
   });
   for (const list of Object.values(index.slots)) list.sort((a, b) => a.name.localeCompare(b.name));
+
+  // a GLB from before items existed: its book and binder slots are the things you pick up
+  if (index.items.size === 0) {
+    for (const mesh of index.slots.book) index.items.set(`book_${mesh.name.slice(-2)}`, mesh);
+    for (const mesh of index.slots.binder) index.items.set(`binder_${mesh.name.slice(-2)}`, mesh);
+  }
+  for (const [id, item] of index.items) item.traverse((child) => index.itemOf.set(child, id));
 
   const meshBox = (mesh: Mesh) => {
     mesh.geometry.computeBoundingBox();

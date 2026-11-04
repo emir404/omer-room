@@ -4,11 +4,12 @@ import { CameraControls, CameraControlsImpl } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import { MathUtils, type PerspectiveCamera, Quaternion, Vector3 } from "three";
-import { isDesktopWidth, LAYOUT, panelWidth } from "@/lib/layout";
+import { captionInset, isDesktopWidth, LAYOUT } from "@/lib/layout";
 import { CHAPTERS, isChapterId } from "@/lib/routes";
-import type { FocusId, ScreenId } from "@/lib/scene-contract";
+import { type FocusId, SECTION_IDS, type ScreenId, type SectionId } from "@/lib/scene-contract";
 import { useRoom } from "@/lib/store";
 import { type SceneIndex, useSceneIndex } from "./scene-index";
+import { useShelfMap } from "./shelf-map";
 
 const { ACTION } = CameraControlsImpl;
 
@@ -20,19 +21,19 @@ interface Pose {
 
 /**
  * Where the camera goes for a focus. Presets in the GLB (cam__<id> → cam__<id>__target) give the
- * direction; the distance is computed so the object fits the part of the viewport the UI leaves
- * free (right panel on desktop, bottom sheet on mobile), then a focal offset re-centers it there.
- * Screens are framed head-on so their DOM UI can sit exactly on top.
+ * direction; the distance is computed so the object fits the part of the viewport its caption
+ * leaves free (the right on desktop, the top on phones), then a focal offset re-centers it there.
+ * Screens are framed head-on so their DOM UI can sit exactly on top. A shelf section frames its
+ * opening (anchor__section_<id>, w × h), a little more square-on than the bookcase view.
  */
-function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamera, width: number, height: number): Pose {
+function computePose(focus: FocusId, section: SectionId | null, index: SceneIndex, camera: PerspectiveCamera, width: number, height: number): Pose {
   const chapter = focus !== "room" && isChapterId(focus) ? CHAPTERS[focus] : null;
   const portrait = width < height;
-  // on phones the computer opens as a sheet (its screen is too small to read), like a panel
-  const sheet = chapter?.kind === "panel" || (focus === "computer" && !isDesktopWidth(width));
-  const insets = { top: chapter?.kind === "screen" && !sheet ? 0 : LAYOUT.topInset, right: 0, bottom: 0 };
-  if (sheet) {
-    if (isDesktopWidth(width)) insets.right = panelWidth(width);
-    else insets.bottom = Math.round(height * LAYOUT.sheetRatio);
+  const captioned = chapter?.kind === "caption";
+  const insets = { top: chapter?.kind === "screen" ? 0 : LAYOUT.topInset, right: 0, bottom: 0 };
+  if (captioned) {
+    if (isDesktopWidth(width)) insets.right = captionInset(width);
+    else insets.bottom = Math.round(height * LAYOUT.captionPhoneRatio);
   }
 
   const vFov = MathUtils.degToRad(camera.fov);
@@ -45,7 +46,8 @@ function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamer
   let direction: Vector3;
   let distance: number;
 
-  const screen = chapter?.kind === "screen" && !sheet ? index.screens.get(focus as ScreenId) : undefined;
+  const screen = chapter?.kind === "screen" ? index.screens.get(focus as ScreenId) : undefined;
+  const opening = focus === "shelf" && section ? index.sections.get(section) : undefined;
   if (screen) {
     // fit the screen's rectangle (not its bounding sphere) so the UI on it is big enough to read
     screen.geometry.computeBoundingBox();
@@ -54,6 +56,14 @@ function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamer
     target = screen.getWorldPosition(new Vector3());
     direction = new Vector3(0, 0, 1).applyQuaternion(screen.getWorldQuaternion(new Quaternion())).normalize();
     distance = Math.max(size.y / 2 / Math.tan(usableV / 2), size.x / 2 / Math.tan(usableH / 2)) / fill;
+  } else if (opening) {
+    const preset = index.cams.get("shelf") ?? index.cams.get("room")!;
+    const along = preset.position.clone().sub(preset.target).normalize();
+    // halfway between the bookcase's three-quarter view and straight on (the case faces +X)
+    direction = along.clone().setY(0).normalize().add(new Vector3(1, 0, 0)).normalize().setY(along.y * 0.6).normalize();
+    target = opening.anchor.getWorldPosition(new Vector3());
+    const fill = 0.9;
+    distance = Math.max(opening.h / 2 / Math.tan(usableV / 2), opening.w / 2 / Math.tan(usableH / 2)) / fill;
   } else {
     const preset = index.cams.get(focus) ?? index.cams.get("room")!;
     target = preset.target.clone();
@@ -63,7 +73,7 @@ function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamer
       if (portrait) target = index.roomSphere.center.clone().setY(1.1);
       distance = fit(index.roomSphere.radius * (portrait ? 0.82 : 0.74));
     } else {
-      distance = fit((index.spheres.get(focus)?.radius ?? 0.5) * 1.12);
+      distance = fit((index.spheres.get(focus)?.radius ?? 0.5) * 1.06);
     }
   }
 
@@ -78,10 +88,15 @@ function computePose(focus: FocusId, index: SceneIndex, camera: PerspectiveCamer
   };
 }
 
+const isSection = (value: string | null): value is SectionId => value !== null && (SECTION_IDS as readonly string[]).includes(value);
+
 export function CameraRig() {
   const ref = useRef<CameraControlsImpl>(null);
   const index = useSceneIndex((s) => s.index);
   const focus = useRoom((s) => s.focus);
+  const item = useRoom((s) => s.item);
+  const holding = useRoom((s) => s.holding);
+  const map = useShelfMap((s) => s.map);
   const touch = useRoom((s) => s.touch);
   const width = useThree((s) => s.size.width);
   const height = useThree((s) => s.size.height);
@@ -89,6 +104,10 @@ export function CameraRig() {
   const invalidate = useThree((s) => s.invalidate);
   const first = useRef(true);
   const base = useRef<Pose["offset"]>({ x: 0, y: 0 });
+
+  // on the shelf: a section's URL frames that section; a thing in your hand frames where it came from
+  const section: SectionId | null =
+    focus !== "shelf" ? null : isSection(item) ? item : holding ? (map.sectionOf.get(holding) ?? null) : item ? (map.sectionOf.get(map.bySlug.get(item)?.[0] ?? "") ?? null) : null;
 
   // input: no free orbit; a small swipe on touch overview (set after each move)
   useEffect(() => {
@@ -119,7 +138,7 @@ export function CameraRig() {
     const c = ref.current;
     if (!c || !index) return;
     const { reducedMotion, testMode } = useRoom.getState();
-    const pose = computePose(focus, index, camera, width, height);
+    const pose = computePose(focus, section, index, camera, width, height);
     const animate = !first.current && !reducedMotion && !testMode;
     first.current = false;
     base.current = pose.offset;
@@ -151,7 +170,7 @@ export function CameraRig() {
     return () => {
       cancelled = true;
     };
-  }, [focus, index, width, height, touch, camera, invalidate]);
+  }, [focus, section, index, width, height, touch, camera, invalidate]);
 
   // desktop overview: gentle pointer parallax
   useEffect(() => {

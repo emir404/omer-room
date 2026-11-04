@@ -1,22 +1,27 @@
 /**
- * Layout numbers shared by the camera (which frames objects in the space the UI leaves free)
- * and the CSS (src/app/globals.css uses the same values — keep them in sync).
+ * Layout numbers shared by the camera (which frames objects in the space the captions leave free)
+ * and the CSS (src/components/caption/caption.css uses the same values — keep them in sync).
  */
 export const LAYOUT = {
-  /** Below this width, panels become bottom sheets. */
+  /** Below this width, captions sit under the object instead of beside it. */
   desktopMinWidth: 768,
   /** Space kept clear at the top for the 3D/Text switch. */
   topInset: 56,
-  /** The right-hand sheet: min(440px, 36vw), 12px from the edges. */
-  panelMaxWidth: 440,
-  panelWidthRatio: 0.36,
-  panelGap: 12,
-  /** Bottom sheet height (first snap) as a share of the viewport. */
-  sheetRatio: 0.46,
+  /** The caption column on the right: clamp(340px, 30vw, 440px), 40px from the edge… */
+  captionMin: 340,
+  captionMax: 440,
+  captionRatio: 0.3,
+  captionGutter: 40,
+  /** …and this much air between it and the object. */
+  captionGap: 28,
+  /** On phones the caption takes the bottom 52% of the screen. */
+  captionPhoneRatio: 0.52,
 } as const;
 
-export function panelWidth(viewportWidth: number): number {
-  return Math.min(LAYOUT.panelMaxWidth, Math.round(viewportWidth * LAYOUT.panelWidthRatio)) + LAYOUT.panelGap * 2;
+/** How much of the viewport's right side the caption takes (desktop). */
+export function captionInset(viewportWidth: number): number {
+  const width = Math.min(LAYOUT.captionMax, Math.max(LAYOUT.captionMin, viewportWidth * LAYOUT.captionRatio));
+  return Math.round(width + LAYOUT.captionGutter + LAYOUT.captionGap);
 }
 
 export const isDesktopWidth = (width: number) => width >= LAYOUT.desktopMinWidth;

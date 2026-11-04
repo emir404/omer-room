@@ -2,7 +2,7 @@
 
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
-import { Box3, type Camera, type Mesh, Vector3 } from "three";
+import { Box3, type Camera, type Mesh, type Object3D, Vector3 } from "three";
 import type { ObjectId } from "@/lib/scene-contract";
 import { useRoom } from "@/lib/store";
 import { overlay, pinElements } from "./registry";
@@ -91,6 +91,32 @@ export function Projector() {
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   };
 
+  /** Screen bounds of a whole node (every mesh under it), e.g. a medal and its ribbon. */
+  const projectNode = (node: Object3D, camera: Camera, width: number, height: number): Rect | null => {
+    const b = tmp.box.setFromObject(node);
+    if (b.isEmpty()) return null;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let i = 0;
+    for (const x of [b.min.x, b.max.x]) {
+      for (const y of [b.min.y, b.max.y]) {
+        for (const z of [b.min.z, b.max.z]) {
+          const p = tmp.corners[i++]!.set(x, y, z).project(camera);
+          if (p.z > 1) return null;
+          const sx = (p.x * 0.5 + 0.5) * width;
+          const sy = (-p.y * 0.5 + 0.5) * height;
+          minX = Math.min(minX, sx);
+          maxX = Math.max(maxX, sx);
+          minY = Math.min(minY, sy);
+          maxY = Math.max(maxY, sy);
+        }
+      }
+    }
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  };
+
   // ?test=1 only: lets Playwright click real 3D objects ("where is the letter on screen?")
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
@@ -102,6 +128,14 @@ export function Projector() {
         const rect = hit ? projectBox(hit, camera, size.width, size.height) : null;
         return rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : null;
       },
+      /** Screen-space center of a thing on the shelf (an item id: book_03, medal_gold…). */
+      item(id: string) {
+        const node = index.items.get(id);
+        const rect = node ? projectNode(node, camera, size.width, size.height) : null;
+        return rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : null;
+      },
+      /** What's in your hand. */
+      holding: () => useRoom.getState().holding,
     };
   });
 
@@ -128,8 +162,9 @@ export function Projector() {
     if (touch && focus === "room") spreadLabels(placed, width);
     const selection = overlay.selection;
     if (selection) {
-      const mesh = hoveredSub ? overlay.subMesh : hovered && hovered !== focus ? (index.hits.get(hovered) ?? null) : null;
-      const rect = mesh ? projectBox(mesh, camera, width, height) : null;
+      const node = hoveredSub ? overlay.subNode : null;
+      const mesh = hovered && hovered !== focus ? (index.hits.get(hovered) ?? null) : null;
+      const rect = node ? projectNode(node, camera, width, height) : mesh ? projectBox(mesh, camera, width, height) : null;
       if (rect) {
         const pad = 6;
         selection.style.transform = `translate3d(${(rect.x - pad).toFixed(1)}px, ${(rect.y - pad).toFixed(1)}px, 0)`;

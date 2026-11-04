@@ -5,16 +5,14 @@
  * Ömer's Room — global styles. The UI follows the stageshow kit (src/components/kit, tokens in
  * kit/tokens.css): one family, one accent, quiet greys, real shadows, 12px insets.
  * Layout modes (set before first paint by src/lib/webgl.ts):
- *   html[data-mode="room"]  3D room; panels float over the canvas
+ *   html[data-mode="room"]  3D room; captions float over the dimmed room (components/caption)
  *   anything else           the text view (no WebGL, JS off, ?text=1)
- * Layout numbers mirror src/lib/layout.ts (switch 56px, sheet min(440px, 36vw), mobile sheet 46svh).
+ * Layout numbers mirror src/lib/layout.ts (switch 56px; caption sizes in caption.css).
  */
 
 :root {
   --night: 0;
   --top-inset: 56px;
-  --sheet-w: min(440px, 36vw);
-  --sheet-h: 46svh;
   --gap: 12px;
 
   /* the site's look, on top of the kit's tokens */
@@ -119,6 +117,40 @@ html[data-docked] .stage * {
 
 html:not([data-mode="room"]) .when-room,
 html[data-mode="room"] .when-doc {
+  display: none;
+}
+
+/* phones: sitting down at the computer, its screen grows from the monitor to fill yours */
+.screens[data-full] {
+  z-index: 15;
+}
+.screen[data-full="1"] {
+  animation: screen-full 0.5s var(--ease) both;
+}
+@keyframes screen-full {
+  from {
+    clip-path: inset(38% 8% 38% 8% round 12px);
+  }
+  to {
+    clip-path: inset(0 round 0);
+  }
+}
+html[data-docked="computer-full"] .mode {
+  display: none;
+}
+html[data-test="1"] .screen[data-full="1"] {
+  animation: none;
+}
+
+/* the page itself: in the room, only the screens' headings (for screen readers) */
+html[data-mode="room"] .page-slot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+html:not([data-mode="room"]) .page-slot {
   display: none;
 }
 
@@ -394,207 +426,6 @@ html[data-time="night"] .loader-text {
   translate: -50% 0;
 }
 
-/* ------------------------------------------------------------------ chapter hosts */
-
-.chapter-host {
-  position: relative;
-  z-index: 20;
-  animation: chapter-in 0.38s var(--ease) both;
-}
-/* the previous chapter, frozen as static HTML, fading out on top (PanelHost.tsx) */
-.chapter-ghost {
-  z-index: 21;
-  pointer-events: none;
-  animation: chapter-out 0.2s ease-in both;
-}
-@keyframes chapter-in {
-  from {
-    opacity: 0;
-    translate: 8px 0;
-  }
-}
-@keyframes chapter-out {
-  to {
-    opacity: 0;
-    translate: 6px 0;
-  }
-}
-html:not([data-mode="room"]) .chapter-ghost,
-html:not([data-mode="room"]) .chapter-host {
-  display: none;
-}
-
-html[data-mode="room"] .chapter-host {
-  position: fixed;
-}
-html[data-mode="room"] .chapter-host[data-kind="intro"] {
-  pointer-events: none;
-}
-/* screen chapters live on the monitor and the phone (ScreenLayer); their pages are headings */
-html[data-mode="room"] .chapter-host[data-kind="screen"] {
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
-/* desktop: a sheet on the right */
-html[data-mode="room"] .chapter-host[data-kind="panel"] {
-  top: var(--gap);
-  right: var(--gap);
-  bottom: var(--gap);
-  width: var(--sheet-w);
-  display: flex;
-  flex-direction: column;
-  background: var(--ss-surface);
-  border-radius: 16px;
-  box-shadow: var(--ss-shadow-float);
-  overflow: hidden;
-}
-html[data-mode="room"] .chapter-host[data-kind="panel"] .chapter-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-.sheet-handle {
-  display: none;
-}
-
-@media (max-width: 767px) {
-  html[data-mode="room"] .chapter-host[data-kind="panel"],
-  html[data-mode="room"] .chapter-host[data-screen="computer"] {
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    height: var(--sheet-h);
-    clip-path: none;
-    display: flex;
-    flex-direction: column;
-    background: var(--ss-surface);
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 30px -12px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.04);
-    overflow: hidden;
-    transition: height 0.35s var(--ease);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  html[data-mode="room"] .chapter-host[data-screen="computer"] .chapter-scroll {
-    flex: 1;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  html[data-mode="room"] .chapter-host[data-expanded="1"] {
-    height: 92svh;
-  }
-  html[data-mode="room"] .sheet-handle {
-    display: grid;
-    place-items: center;
-    flex: none;
-    height: 20px;
-    border: 0;
-    background: none;
-    cursor: grab;
-  }
-  .sheet-handle span {
-    width: 36px;
-    height: 5px;
-    border-radius: 999px;
-    background: rgb(0 0 0 / 0.14);
-  }
-}
-
-/* ------------------------------------------------------------------ chapter content (sheets) */
-
-.sheet {
-  --row-inset: 20px;
-}
-.sheet-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "back back" "titles close";
-  column-gap: 12px;
-  padding: 18px 20px 14px;
-  background: color-mix(in srgb, var(--ss-surface) 92%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.sheet-back {
-  grid-area: back;
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin: -4px 0 10px -6px;
-  padding: 4px 8px 4px 4px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 550;
-  color: var(--ss-accent-text);
-}
-.sheet-back:hover {
-  background: var(--ss-accent-soft);
-}
-.sheet-titles {
-  grid-area: titles;
-  min-width: 0;
-}
-.sheet-eyebrow {
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 500;
-  color: var(--ss-text);
-}
-.sheet-eyebrow mark.todo::before {
-  content: none;
-}
-.sheet h1 {
-  margin-top: 2px;
-  font-size: 22px;
-  line-height: 28px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  color: var(--ss-text-strong);
-  outline: none;
-}
-.sheet-close {
-  grid-area: close;
-  align-self: start;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  margin-top: 2px;
-  border-radius: 50%;
-  background: var(--ss-ink-2);
-  color: var(--ss-text-strong);
-  transition: background 0.2s;
-}
-.sheet-close:hover {
-  background: var(--ss-ink-4);
-}
-.sheet-body {
-  display: grid;
-  gap: 20px;
-  padding: 4px 20px 28px;
-}
-.sheet-meta {
-  font-size: 13px;
-  color: var(--ss-text);
-}
-
-.lede {
-  font-size: 15px;
-  line-height: 22px;
-  color: var(--ink-body);
-}
-
 /* one number gets to be big; the rest are rows */
 .stats {
   display: grid;
@@ -707,34 +538,6 @@ html[data-mode="room"] .chapter-host[data-kind="panel"] .chapter-scroll {
   font-size: 13px;
 }
 
-.sheet-section {
-  display: grid;
-  gap: 10px;
-}
-.sheet-section h2 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ss-text);
-}
-
-/* lists of rows (the kit's Row anatomy) */
-.list {
-  list-style: none;
-  display: grid;
-  margin: 0 calc(var(--row-inset, 20px) * -1 + 8px);
-}
-.list > li + li {
-  position: relative;
-}
-.list > li + li::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 12px;
-  right: 12px;
-  height: 1px;
-  background: var(--ss-line);
-}
 .row-link {
   display: block;
   border-radius: var(--ss-radius-lg);
@@ -764,18 +567,6 @@ html[data-mode="room"] .chapter-host[data-kind="panel"] .chapter-scroll {
 .ss-row__lead svg {
   color: var(--ss-icon);
 }
-.cover-thumb {
-  display: block;
-  width: 30px;
-  height: 45px;
-  border-radius: 3px;
-  object-fit: cover;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.25);
-}
-.cover-thumb[data-empty] {
-  background: linear-gradient(135deg, var(--ss-ink-3), var(--ss-ink-2));
-}
-
 /* pill links */
 .pills {
   list-style: none;
@@ -848,14 +639,6 @@ a.pill:hover {
   font-weight: 500;
   color: var(--ss-text-strong);
 }
-.book-cover img {
-  display: block;
-  width: 168px;
-  height: auto;
-  border-radius: 4px;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 18px 36px -16px rgb(30 25 15 / 0.5), 0 4px 10px -4px rgb(0 0 0 / 0.2);
-}
-
 /* the letter: the original image, never resized by the site */
 .letter-figure {
   display: grid;
@@ -899,14 +682,10 @@ a.pill:hover {
 
 /* deterministic screenshots (?test=1) */
 html[data-test="1"] .loader,
-html[data-test="1"] .chapter-host,
 html[data-test="1"] .toast,
 html[data-test="1"] .mode-thumb {
   transition: none !important;
   animation: none !important;
-}
-html[data-test="1"] .chapter-ghost {
-  display: none;
 }
 
 /* ------------------------------------------------------------------ motion preferences */

@@ -2,8 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { Component, type ReactNode, useEffect } from "react";
+import { CaptionHost } from "@/components/caption/CaptionHost";
+import { LetterSurface } from "@/components/caption/LetterSurface";
 import { ModeToggle } from "@/components/ModeToggle";
-import { PanelHost } from "@/components/panels/PanelHost";
+import type { ChapterData } from "@/lib/content/chapters";
 import type { SceneData } from "@/lib/content/scene-data";
 import { isTouchDevice, prefersReducedMotion } from "@/lib/quality";
 import { readStoredSound, setSoundEnabled } from "@/lib/sound";
@@ -58,11 +60,12 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 }
 
 /**
- * The room: the canvas, the live screens behind it, the object buttons/pins and the chapter panels,
+ * The room: the canvas, the live screens behind it, the object buttons/pins and the captions,
  * plus the one control on the page (3D ↔ text). Without WebGL or JavaScript, `text` (the whole
- * site as one page, server-rendered) is what shows instead.
+ * site as one page, server-rendered) is what shows instead. `children` is the page itself: for
+ * the screens, just their heading (the content is on the screen).
  */
-export function RoomShell({ data, text, children }: { data: SceneData; text: ReactNode; children: ReactNode }) {
+export function RoomShell({ data, chapters, text, children }: { data: SceneData; chapters: ChapterData; text: ReactNode; children: ReactNode }) {
   const mode = useRoom((s) => s.mode);
 
   useEffect(() => {
@@ -101,6 +104,7 @@ export function RoomShell({ data, text, children }: { data: SceneData; text: Rea
             </SceneBoundary>
           </div>
           <Hotspots objects={data.objects} />
+          {chapters.letter.image ? <LetterSurface image={chapters.letter.image} /> : null}
           <Loader />
         </>
       ) : null}
@@ -108,7 +112,8 @@ export function RoomShell({ data, text, children }: { data: SceneData; text: Rea
       <DocAnchor />
       <TimeKeeper />
       <div className="when-doc">{text}</div>
-      <PanelHost>{children}</PanelHost>
+      <CaptionHost data={chapters} />
+      <div className="page-slot">{children}</div>
       <Toast />
     </div>
   );

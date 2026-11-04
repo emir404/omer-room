@@ -1,5 +1,6 @@
 ---
 title: Koç School Business Society
+spine: Business Society
 shelf: school
 order: 1
 role: Founder & President

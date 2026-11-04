@@ -1,6 +1,6 @@
 "use client";
 
-import type { Mesh } from "three";
+import type { Object3D } from "three";
 import type { ObjectId, ScreenId } from "@/lib/scene-contract";
 
 /**
@@ -10,9 +10,9 @@ import type { ObjectId, ScreenId } from "@/lib/scene-contract";
 export const pinElements = new Map<ObjectId, HTMLElement>();
 export const overlay: {
   selection: HTMLElement | null;
-  /** Mesh of a hovered sub-target (a book spine, a binder, a globe pin). */
-  subMesh: Mesh | null;
-} = { selection: null, subMesh: null };
+  /** A hovered sub-target: a thing on the shelf (the whole item), a section plate, a globe pin. */
+  subNode: Object3D | null;
+} = { selection: null, subNode: null };
 
 /**
  * A live screen UI (ScreenLayer) laid out at `width` × `height` CSS px. The scene maps it onto its
@@ -25,8 +25,13 @@ export interface ScreenSlot {
   width: number;
   height: number;
   docked: boolean;
+  /** Docked full-screen instead of on the screen (the computer on phones: its monitor is too small to read). */
+  full?: boolean;
 }
 export const screenSlots = new Map<ScreenId, ScreenSlot>();
+
+/** DOM laid exactly over a picture in the room once the camera rests on it (the letter). */
+export const surfaces: { letter: HTMLElement | null } = { letter: null };
 
 /** Set by the scene: asks for a frame (the canvas renders on demand). */
 export const scene: { invalidate: () => void } = { invalidate: () => {} };

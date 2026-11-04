@@ -2,10 +2,10 @@ import type { FocusId, ObjectId } from "./scene-contract";
 
 /**
  * Routes drive the camera: every chapter is a real URL, and the URL decides what the camera
- * looks at. "panel" chapters open a side panel / bottom sheet; "screen" chapters open their UI
- * on the object's screen (computer, phone).
+ * looks at. "caption" chapters dim the room around the object and show its words beside it
+ * (src/components/caption); "screen" chapters open their UI on the object's screen (computer, phone).
  */
-export type ChapterKind = "panel" | "screen";
+export type ChapterKind = "caption" | "screen";
 
 export interface Chapter {
   id: ObjectId;
@@ -16,13 +16,13 @@ export interface Chapter {
 }
 
 export const CHAPTERS = {
-  shelf: { id: "shelf", path: "/shelf", kind: "panel", title: "Bookshelf" },
+  shelf: { id: "shelf", path: "/shelf", kind: "caption", title: "Bookshelf" },
   computer: { id: "computer", path: "/computer", kind: "screen", title: "Computer" },
   phone: { id: "phone", path: "/phone", kind: "screen", title: "Phone" },
-  globe: { id: "globe", path: "/globe", kind: "panel", title: "Globe" },
-  window: { id: "window", path: "/window", kind: "panel", title: "Window" },
-  letter: { id: "letter", path: "/letter", kind: "panel", title: "The letter" },
-  contact: { id: "contact", path: "/contact", kind: "panel", title: "Mailbox" },
+  globe: { id: "globe", path: "/globe", kind: "caption", title: "Globe" },
+  window: { id: "window", path: "/window", kind: "caption", title: "Window" },
+  letter: { id: "letter", path: "/letter", kind: "caption", title: "The letter" },
+  contact: { id: "contact", path: "/contact", kind: "caption", title: "Mailbox" },
 } as const satisfies Record<string, Chapter>;
 
 export type ChapterId = keyof typeof CHAPTERS;
@@ -47,7 +47,8 @@ export function parsePath(pathname: string): RouteState {
   return { focus: "room", chapter: null, item: null };
 }
 
-/** Where Esc / the close button goes: item → chapter → room. Never history.back(). */
+/** Where Esc goes when the page names no parent: item → chapter → room. Never history.back().
+ *  (Shelf items name theirs, their section: the caption's back link.) */
 export function parentPath(pathname: string): string {
   const { chapter, item } = parsePath(pathname);
   if (chapter && item) return CHAPTERS[chapter].path;

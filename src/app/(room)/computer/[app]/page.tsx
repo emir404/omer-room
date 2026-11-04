@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ChapterPanel, Gallery, Lede, LinkList, Metrics, Prose } from "@/components/panels/ui";
 import { getComputerApps } from "@/lib/content/load";
 
 export const dynamicParams = false;
@@ -16,18 +15,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: getComputerApps().find((a) => a.slug === app)?.data.title ?? "Work" };
 }
 
-/** Phones: one role as a sheet. Desktops show it in the window on the monitor (OmerOS). */
+/** The role opens in the desktop's Work app (ScreenLayer → OmerOS); this keeps the URL and a heading. */
 export default async function ComputerAppPage({ params }: Props) {
   const { app } = await params;
   const entry = getComputerApps().find((a) => a.slug === app);
   if (!entry) notFound();
   return (
-    <ChapterPanel eyebrow={`${entry.data.role} · ${entry.data.period}`} title={entry.data.title} back={{ href: "/computer", label: "Work" }} testId="chapter-computer-app">
-      <Lede>{entry.data.summary}</Lede>
-      <Metrics items={entry.data.metrics} />
-      <Prose html={entry.html} />
-      <Gallery images={entry.data.images} />
-      <LinkList links={entry.data.links} />
-    </ChapterPanel>
+    <h1 tabIndex={-1} className="sr-only" data-testid="chapter-computer-app">
+      {entry.data.title}
+    </h1>
   );
 }

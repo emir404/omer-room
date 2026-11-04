@@ -1,5 +1,6 @@
 ---
 title: Research with Prof. Edison Tse
+spine: Research
 shelf: school
 order: 3
 role: Student Researcher

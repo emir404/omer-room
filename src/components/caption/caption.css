@@ -1,0 +1,469 @@
+/* Captions: the words beside the lit object, over the dimmed room (CaptionHost.tsx). No sheet, no
+   card: light type on the dark, like a label in a museum case. Desktop: a column on the right,
+   centered on the object's height. Phones: under the object, over a deeper scrim.
+   The width and the phone height mirror src/lib/layout.ts (captionWidth, captionRatio). */
+
+.captions {
+  --cap-w: clamp(340px, 30vw, 440px);
+  --cap-gutter: 40px;
+  --cap-h: 52svh;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+html:not([data-mode="room"]) .captions {
+  display: none;
+}
+
+.cap-layer {
+  position: absolute;
+  top: 0;
+  right: var(--cap-gutter);
+  bottom: 0;
+  width: var(--cap-w);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 0 32px;
+}
+/* a deeper shade behind the words (the dimmed room can still be busy there: a window, a plant) */
+.cap-live::before {
+  content: "";
+  position: absolute;
+  inset: 0 calc(var(--cap-gutter) * -1) 0 -72px;
+  background: linear-gradient(to right, rgb(10 8 6 / 0), rgb(10 8 6 / 0.42) 30%, rgb(10 8 6 / 0.5));
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease);
+}
+.cap-live[data-shown="0"]::before {
+  opacity: 0;
+}
+.cap-scroll {
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+  padding: 20px 4px 28px;
+  margin: 0 -4px;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 28px), transparent 100%);
+  transition: opacity 0.4s var(--ease), translate 0.55s var(--ease);
+}
+.cap-scroll::-webkit-scrollbar {
+  display: none;
+}
+.cap-live[data-shown="0"] .cap-scroll {
+  opacity: 0;
+  translate: 12px 0;
+  pointer-events: none;
+}
+.cap-live[data-shown="0"] .cap-hint {
+  opacity: 0;
+}
+.cap-leaving {
+  pointer-events: none;
+  animation: cap-out 0.2s ease-in both;
+}
+@keyframes cap-out {
+  to {
+    opacity: 0;
+    translate: 8px 0;
+  }
+}
+
+/* ------------------------------------------------------------------ the type: light on the dark */
+
+.cap {
+  --ss-text-strong: #fff;
+  --ss-text: rgb(255 255 255 / 0.62);
+  --ss-text-faint: rgb(255 255 255 / 0.4);
+  --ink-body: rgb(255 255 255 / 0.8);
+  --ss-line: rgb(255 255 255 / 0.13);
+  --ss-ink-1: rgb(255 255 255 / 0.05);
+  --ss-ink-2: rgb(255 255 255 / 0.1);
+  --ss-ink-3: rgb(255 255 255 / 0.14);
+  --ss-ink-4: rgb(255 255 255 / 0.18);
+  --ss-icon: rgb(255 255 255 / 0.82);
+  --ss-icon-faint: rgb(255 255 255 / 0.38);
+  --ss-accent-text: #ffb489;
+  --todo-bg: rgb(255 190 92 / 0.16);
+  --todo-ink: #ffd796;
+  color: #fff;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.25);
+}
+.cap-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+.cap-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: -6px;
+  padding: 6px 10px 6px 4px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 550;
+  color: rgb(255 255 255 / 0.72);
+  transition: color 0.2s, background 0.2s;
+}
+.cap-back:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 0.08);
+}
+.cap-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+  transition: background 0.2s;
+}
+.cap-close:hover {
+  background: rgb(255 255 255 / 0.22);
+}
+.cap-body {
+  display: grid;
+  gap: 20px;
+  margin-top: 14px;
+}
+.cap-head {
+  display: grid;
+  gap: 6px;
+}
+.cap-kicker {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.6);
+}
+.cap-kicker mark.todo::before {
+  content: none;
+}
+.cap-title {
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 650;
+  letter-spacing: -0.024em;
+  text-wrap: balance;
+  outline: none;
+}
+.cap-summary {
+  margin-top: -6px;
+  font-size: 17px;
+  line-height: 25px;
+  color: rgb(255 255 255 / 0.86);
+  text-wrap: pretty;
+}
+.cap-note {
+  font-size: 13px;
+  line-height: 19px;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.cap .stat-value {
+  font-size: 44px;
+  line-height: 46px;
+}
+.cap .prose {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.cap .prose a {
+  color: var(--ss-accent-text);
+}
+.cap .pill {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+  text-shadow: none;
+}
+.cap a.pill:hover {
+  background: rgb(255 255 255 / 0.22);
+}
+.cap .pill[data-todo] {
+  background: rgb(255 255 255 / 0.05);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  color: rgb(255 255 255 / 0.6);
+}
+.cap .gallery-frame {
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.cap .gallery-empty {
+  background: rgb(255 255 255 / 0.05);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.6);
+}
+
+.cap-takeaway {
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--ss-accent);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 500;
+}
+
+.cap-facts {
+  display: grid;
+  border-top: 1px solid var(--ss-line);
+}
+.cap-facts > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ss-line);
+}
+.cap-facts dt {
+  font-size: 13px;
+  line-height: 20px;
+  color: rgb(255 255 255 / 0.55);
+}
+.cap-facts dd {
+  font-size: 14px;
+  line-height: 20px;
+  color: rgb(255 255 255 / 0.86);
+}
+
+/* rows: the kit's Row anatomy, on the dark */
+.cap-rows {
+  list-style: none;
+  display: grid;
+  margin: 0 -12px;
+}
+.cap-rows > li + li {
+  position: relative;
+}
+.cap-rows > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--ss-line);
+}
+.cap-row {
+  display: block;
+  border-radius: var(--ss-radius-lg);
+}
+.cap-row .ss-row {
+  --ss-row-title: 15px;
+  --ss-row-subtitle: 13px;
+  --ss-row-meta: 13px;
+  --ss-row-line: 21px;
+  --ss-row-line-2: 18px;
+  border-radius: var(--ss-radius-lg);
+  transition: background 0.2s;
+}
+a.cap-row:hover .ss-row {
+  background: rgb(255 255 255 / 0.08);
+}
+.cap-row[data-todo] {
+  opacity: 0.75;
+}
+.cap-chevron {
+  flex: none;
+  color: rgb(255 255 255 / 0.4);
+  transition: color 0.2s, translate 0.2s var(--ease);
+}
+a.cap-row:hover .cap-chevron {
+  color: #fff;
+  translate: 2px 0;
+}
+.cap .ss-row__lead svg {
+  color: rgb(255 255 255 / 0.82);
+}
+.cap-mark {
+  display: block;
+  filter: brightness(0) invert(1);
+}
+.cap-cover {
+  display: block;
+  width: 30px;
+  height: 45px;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 4px 10px -4px rgb(0 0 0 / 0.6);
+}
+.cap-cover[data-empty] {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.cap-section {
+  display: grid;
+  gap: 10px;
+}
+.cap-section h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.6);
+}
+.cap-reactions {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.cap-reactions img {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+}
+.cap-reactions p {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.62);
+}
+
+/* walk the shelf: previous · 2 / 5 · next */
+.cap-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ss-line);
+}
+.cap-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 4px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 550;
+  color: rgb(255 255 255 / 0.72);
+  transition: color 0.2s;
+}
+.cap-step span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cap-step svg {
+  flex: none;
+}
+.cap-step[data-dir="next"] {
+  justify-self: end;
+}
+.cap-step:hover {
+  color: #fff;
+}
+.cap-step mark.todo::before {
+  content: none;
+}
+.cap-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(255 255 255 / 0.42);
+}
+
+/* the hint for what's in your hand: centered under it, in the space left of the caption */
+.cap-hint {
+  position: fixed;
+  bottom: 28px;
+  left: calc((100vw - var(--cap-w) - var(--cap-gutter)) / 2);
+  translate: -50% 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgb(255 255 255 / 0.78);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease);
+}
+.cap-hint-coarse {
+  display: none;
+}
+@media (hover: none) {
+  .cap-hint-fine {
+    display: none;
+  }
+  .cap-hint-coarse {
+    display: inline;
+  }
+}
+
+/* ------------------------------------------------------------------ phones: under the object */
+
+@media (max-width: 767px) {
+  .cap-layer {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: var(--cap-h);
+    justify-content: flex-end;
+    padding: 0 16px calc(8px + env(safe-area-inset-bottom));
+  }
+  .cap-live::before {
+    inset: -12svh 0 0;
+    background: linear-gradient(to top, rgb(8 6 4 / 0.62) 30%, rgb(8 6 4 / 0));
+  }
+  .cap-scroll {
+    position: relative;
+    padding-top: 16px;
+    mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 12px), transparent 100%);
+  }
+  .cap-live[data-shown="0"] .cap-scroll {
+    translate: 0 14px;
+  }
+  .cap-title {
+    font-size: 26px;
+    line-height: 30px;
+  }
+  .cap-summary {
+    font-size: 16px;
+    line-height: 23px;
+  }
+  .cap .stat-value {
+    font-size: 36px;
+    line-height: 40px;
+  }
+  .cap-hint {
+    left: 50%;
+    bottom: auto;
+    top: calc(100svh - var(--cap-h) - 40px);
+  }
+}
+
+/* the letter's own file over the frame (LetterSurface + LetterProjector) */
+.letter-surface {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+}
+.letter-surface[data-shown="1"] {
+  opacity: 1;
+}
+html:not([data-mode="room"]) .letter-surface {
+  display: none;
+}
+
+/* ?test=1: no fades (deterministic screenshots) */
+html[data-test="1"] .cap-scroll,
+html[data-test="1"] .cap-hint {
+  transition: none !important;
+}
+html[data-test="1"] .cap-leaving {
+  display: none;
+}

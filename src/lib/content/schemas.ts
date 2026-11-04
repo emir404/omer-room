@@ -97,6 +97,8 @@ export type ShelfMeta = z.infer<typeof ShelfMetaSchema>;
 
 export const ShelfItemSchema = z.object({
   title: z.string().min(1),
+  /** The word on its binder's spine, if it gets one (school items do). Defaults to the title. */
+  spine: z.string().min(1).max(20).optional(),
   shelf: z.enum(["school", "olympiad", "mun"]),
   order: z.number(),
   role: z.string().min(1),

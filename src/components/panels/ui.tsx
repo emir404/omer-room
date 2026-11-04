@@ -1,11 +1,8 @@
-import { ArrowUpRight, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { Row } from "@/components/ui/Row";
 import type { ContentImage, ContentLink, Metric } from "@/lib/content/schemas";
 
-/** Server-safe building blocks for chapter content (panels, the mobile sheets, the text view). */
+/** Server-safe building blocks for content: the captions, the screens and the text view. */
 
 const isTodo = (text: string) => /^TODO/.test(text);
 
@@ -37,55 +34,6 @@ export function Text({ children }: { children: string }) {
         ),
       )}
     </>
-  );
-}
-
-/**
- * A chapter as a sheet: an optional back link (to the parent list), the title, a close button.
- * `back` marks the parent for Esc too (PanelHost reads [data-back]).
- */
-export function ChapterPanel({
-  eyebrow,
-  title,
-  back,
-  testId,
-  children,
-}: {
-  eyebrow?: string;
-  title: string;
-  back?: { href: string; label: string };
-  testId?: string;
-  children: ReactNode;
-}) {
-  return (
-    <article className="sheet" data-testid={testId}>
-      <header className="sheet-head">
-        {back ? (
-          <Link href={back.href} scroll={false} className="sheet-back" data-back>
-            <ChevronLeft size={16} strokeWidth={2} aria-hidden />
-            <span>{back.label}</span>
-          </Link>
-        ) : null}
-        <div className="sheet-titles">
-          {eyebrow ? <p className="sheet-eyebrow">{eyebrow}</p> : null}
-          <h1 tabIndex={-1}>
-            <Text>{title}</Text>
-          </h1>
-        </div>
-        <Link href="/" scroll={false} className="sheet-close" aria-label="Close, back to the room">
-          <X size={16} strokeWidth={2} aria-hidden />
-        </Link>
-      </header>
-      <div className="sheet-body">{children}</div>
-    </article>
-  );
-}
-
-export function Lede({ children }: { children: string }) {
-  return (
-    <p className="lede">
-      <Text>{children}</Text>
-    </p>
   );
 }
 
@@ -128,15 +76,6 @@ export function Prose({ html }: { html: string }) {
   return <div className="prose" dangerouslySetInnerHTML={{ __html: marked }} />;
 }
 
-export function Section({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
-  return (
-    <section className="sheet-section" aria-labelledby={id}>
-      <h2 id={id}>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 export function Gallery({ images, empty }: { images: ContentImage[]; empty?: string }) {
   if (!images.length) return empty ? <p className="gallery-empty">{empty}</p> : null;
   return (
@@ -174,30 +113,6 @@ export function LinkList({ links }: { links: ContentLink[] }) {
           )}
         </li>
       ))}
-    </ul>
-  );
-}
-
-/** A row that opens something: a list item in a panel. */
-export function ItemLink({ href, title, meta, subtitle, lead }: { href: string; title: string; meta?: string; subtitle?: string; lead?: ReactNode }) {
-  return (
-    <Link href={href} scroll={false} className="row-link">
-      <Row
-        lead={lead}
-        title={<Text>{title}</Text>}
-        subtitle={subtitle ? <Text>{subtitle}</Text> : undefined}
-        meta={meta ? <Text>{meta}</Text> : undefined}
-      >
-        <ChevronRight className="row-chevron" size={16} strokeWidth={2} aria-hidden />
-      </Row>
-    </Link>
-  );
-}
-
-export function List({ children, label }: { children: ReactNode; label?: string }) {
-  return (
-    <ul className="list" aria-label={label}>
-      {children}
     </ul>
   );
 }

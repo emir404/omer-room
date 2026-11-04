@@ -1,20 +1,22 @@
 "use client";
 
 import { useThree } from "@react-three/fiber";
-import { useEffect } from "react";
-import { type BufferAttribute, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial, SRGBColorSpace, type Texture, TextureLoader } from "three";
-import type { SceneBinder, SceneBook } from "@/lib/content/scene-data";
-import { assignSlots } from "@/lib/slots";
+import { useEffect, useMemo } from "react";
+import { type BufferAttribute, type Mesh, type MeshBasicMaterial, type MeshStandardMaterial, type Object3D, SRGBColorSpace, type Texture, TextureLoader } from "three";
+import type { SceneBook, SceneShelf } from "@/lib/content/scene-data";
+import { detectTier } from "@/lib/quality";
+import { useRoom } from "@/lib/store";
 import { canvasTexture, ensureFonts, makeCanvas } from "@/lib/textures/canvas";
+import { CERT_H, CERT_W, drawCertificate, drawPlateAtlas, drawTitlePage, PAGE_H, PAGE_W } from "@/lib/textures/paper";
 import { drawPhotoPlaceholder, PHOTO_H, PHOTO_W } from "@/lib/textures/screens";
-import { coverColor, drawBinderAtlas, drawSpineAtlas } from "@/lib/textures/spines";
+import { drawBinderAtlas, drawSpineAtlas } from "@/lib/textures/spines";
 import { useSceneIndex } from "../scene-index";
+import { buildShelfMap, useShelfMap } from "../shelf-map";
 
 /** Maps a slot's 0..1 UVs into its atlas cell (from a saved copy, so it's safe to re-run).
  *  getX/setXY handle quantized (normalized integer) UVs from the compressed GLB. */
 function remapUV(mesh: Mesh, cell: { u0: number; v0: number; u1: number; v1: number }) {
-  // identical slots (the binders' spines) share one geometry after compression (dedup): give each
-  // slot its own copy before moving its UVs, or every binder would show the last one's label
+  // identical slots share one geometry after compression (dedup): give each its own copy first
   if (!mesh.userData.ownGeometry) {
     mesh.geometry = mesh.geometry.clone();
     mesh.userData.ownGeometry = true;
@@ -44,113 +46,143 @@ function applyTexture(mesh: Mesh, texture: Texture) {
   material.needsUpdate = true;
 }
 
-/** The slot's own color as the art pass painted it (binders: navy, red, sage, mustard). */
+/** The slot's own color as the art pass painted it (the binders' plastic). */
 function baseColor(mesh: Mesh): string {
   const material = mesh.material as SlotMaterial;
   mesh.userData.baseColor ??= `#${material.color.getHexString()}`;
   return mesh.userData.baseColor as string;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = src;
+/** Every mesh of an item answers the pointer the same way: what it is, where it leads. */
+function tagItem(node: Object3D, sub: { key: string; label: string; href: string } | undefined) {
+  node.traverse((child) => {
+    if ((child as Mesh).isMesh) child.userData.sub = sub;
   });
 }
 
+const loader = new TextureLoader();
+function coverTexture(src: string, onLoad: () => void): Texture {
+  const texture = loader.load(src, onLoad);
+  texture.flipY = false;
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
 /**
- * Content → shelf. The four binders are the shelf's chapters (labels from content/shelf.json, each
- * opens /shelf/<id>); the first featured book stands face-out with its real cover; the other books
- * fill the spines in `order` (a cover gives its spine its color); MUN photos fill the frames. All of
- * them become clickable once the camera is on the shelf (userData.sub, resolved in Room.tsx).
+ * Content → the shelf. Books fill the book items (spines drawn from title and color, the real
+ * cover on the front board); school items get labeled binders; section plates are engraved with
+ * the section names; the research paper's title page and the certificate are printed; MUN photos
+ * fill the frames. Every item becomes a target once the camera is on the shelf (userData.sub,
+ * resolved in Room.tsx), and shelf-map.ts says what each one opens.
  */
-export function Shelf({ books, binders, photos }: { books: SceneBook[]; binders: SceneBinder[]; photos: { src: string; alt: string }[] }) {
+export function Shelf({ books, shelf, photos }: { books: SceneBook[]; shelf: SceneShelf; photos: { src: string; alt: string }[] }) {
   const index = useSceneIndex((s) => s.index);
   const invalidate = useThree((s) => s.invalidate);
+  const focus = useRoom((s) => s.focus);
+  const map = useMemo(() => (index ? buildShelfMap(index, shelf, books) : null), [index, shelf, books]);
 
   useEffect(() => {
-    if (!index) return;
+    if (map) useShelfMap.setState({ map });
+  }, [map]);
+
+  // targets, labels and what's left empty
+  useEffect(() => {
+    if (!index || !map) return;
+    for (const [id, node] of index.items) {
+      const entry = map.byItem.get(id);
+      tagItem(node, entry ? { key: `item:${id}`, label: entry.label, href: entry.href } : undefined);
+      // an empty book spot or binder isn't on the shelf at all
+      if (map.books.has(id)) node.visible = Boolean(map.books.get(id));
+      if (map.binders.has(id)) node.visible = Boolean(map.binders.get(id));
+    }
+    for (const plate of index.slots.label) {
+      const section = shelf.sections.find((s) => s.id === plate.userData.section);
+      plate.userData.sub = section ? { key: `section:${section.id}`, label: section.title, href: section.href } : undefined;
+    }
+    invalidate();
+  }, [index, map, shelf, invalidate]);
+
+  // printed things: spines, binder labels, plates, the title page, photos
+  useEffect(() => {
+    if (!index || !map) return;
     let cancelled = false;
     const disposables: Texture[] = [];
-    const loader = new TextureLoader();
-
-    // face-out: the first featured book with a cover
-    const coverSlot = index.slots.cover[0];
-    const featured = books.find((b) => b.featured && b.cover) ?? null;
-    if (coverSlot) {
-      coverSlot.userData.sub = featured ? { key: `book:${featured.slug}`, label: featured.title, href: featured.href } : undefined;
-      if (featured?.cover) {
-        const texture = loader.load(featured.cover, () => invalidate());
-        texture.flipY = false;
-        texture.colorSpace = SRGBColorSpace;
-        texture.anisotropy = 8;
-        applyTexture(coverSlot, texture);
-        disposables.push(texture);
-      }
-    }
-
-    // spines: everything else
-    const spines = index.slots.book;
-    const { assigned, overflow } = assignSlots(
-      books.filter((b) => b !== featured),
-      spines.length,
-    );
-    if (overflow.length && process.env.NODE_ENV !== "production") {
-      console.warn(`[shelf] ${overflow.length} book(s) don't fit on the shelf and are listed in the panel only.`);
-    }
-    for (const [i, mesh] of spines.entries()) {
-      const book = assigned[i];
-      mesh.userData.sub = book ? { key: `book:${book.slug}`, label: book.title, href: book.href } : undefined;
-    }
-
-    // binders: the chapters
-    const binderSlots = index.slots.binder;
-    binderSlots.forEach((mesh, i) => {
-      const binder = binders[i];
-      mesh.userData.sub = binder ? { key: `binder:${binder.id}`, label: binder.title, href: binder.href } : undefined;
-    });
 
     void (async () => {
       await ensureFonts();
-      // real covers color their spines
-      const colored = await Promise.all(
-        assigned.map(async (book) => {
-          if (!book?.cover) return book;
-          const image = await loadImage(book.cover);
-          if (!image) return book;
-          const color = coverColor(image);
-          const n = Number.parseInt(color.slice(1), 16);
-          const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-          return { ...book, color, text: lum > 0.6 ? "#1E1B16" : "#F4EEE3" };
-        }),
-      );
       if (cancelled) return;
-      const atlas = drawSpineAtlas(colored);
-      disposables.push(atlas.texture);
-      spines.forEach((mesh, i) => {
-        remapUV(mesh, atlas.cell(i));
-        applyTexture(mesh, atlas.texture);
-      });
+
+      // spines, in slot order; the book on each spine's item (or none)
+      const spines = index.slots.book;
+      const bookOf = (mesh: Mesh) => {
+        const id = index.itemOf.get(mesh) ?? `book_${mesh.name.slice(-2)}`;
+        return map.books.get(id) ?? null;
+      };
+      if (spines.length) {
+        const atlas = drawSpineAtlas(spines.map(bookOf));
+        disposables.push(atlas.texture);
+        spines.forEach((mesh, i) => {
+          remapUV(mesh, atlas.cell(i));
+          applyTexture(mesh, atlas.texture);
+        });
+      }
+
+      const binderSlots = index.slots.binder;
       if (binderSlots.length) {
-        const labels = drawBinderAtlas(binderSlots.map((mesh, i) => ({ label: binders[i]?.label ?? "", color: baseColor(mesh) })));
+        const labelOf = (mesh: Mesh) => {
+          const id = index.itemOf.get(mesh) ?? `binder_${mesh.name.slice(-2)}`;
+          return map.binders.get(id)?.spine ?? "";
+        };
+        const labels = drawBinderAtlas(binderSlots.map((mesh) => ({ label: labelOf(mesh), color: baseColor(mesh) })));
         disposables.push(labels.texture);
         binderSlots.forEach((mesh, i) => {
           remapUV(mesh, labels.cell(i));
           applyTexture(mesh, labels.texture);
         });
       }
+
+      const plates = index.slots.label;
+      if (plates.length) {
+        const nameOf = (mesh: Mesh) => shelf.sections.find((s) => s.id === mesh.userData.section)?.label ?? "";
+        const atlas = drawPlateAtlas(plates.map(nameOf));
+        disposables.push(atlas.texture);
+        plates.forEach((mesh, i) => {
+          remapUV(mesh, atlas.cell(i));
+          applyTexture(mesh, atlas.texture);
+        });
+      }
+
+      const research = shelf.items.find((i) => i.slug === "edison-tse-research");
+      for (const page of index.slots.page) {
+        const { canvas, ctx } = makeCanvas(PAGE_W, PAGE_H);
+        ctx.imageSmoothingEnabled = true;
+        drawTitlePage(ctx, {
+          title: "AI and the Boundaries of the Firm: Coase, Venture Capital and Endogenous Startup Valuations",
+          byline: "Ömer Öztok",
+          note: research ? "Mentored by Prof. Edison Tse, Stanford University" : "",
+          date: "Working draft",
+        });
+        const texture = canvasTexture(canvas, false);
+        texture.anisotropy = 8;
+        disposables.push(texture);
+        applyTexture(page, texture);
+      }
       invalidate();
     })();
 
+    // photos: MUN frames get the conference photos; the certificate its own picture
     index.slots.photo.forEach((mesh, i) => {
-      const photo = photos[i];
+      const isCertificate = index.itemOf.get(mesh) === "certificate";
+      const photo = isCertificate ? undefined : photos[i];
       let texture: Texture;
       if (photo) {
-        texture = loader.load(photo.src, () => invalidate());
-        texture.flipY = false;
-        texture.colorSpace = SRGBColorSpace;
+        texture = coverTexture(photo.src, () => invalidate());
+      } else if (isCertificate) {
+        const { canvas, ctx } = makeCanvas(CERT_W, CERT_H);
+        ctx.imageSmoothingEnabled = true;
+        drawCertificate(ctx, "My LGS Buddy");
+        texture = canvasTexture(canvas, false);
       } else {
         const { canvas, ctx } = makeCanvas(PHOTO_W, PHOTO_H);
         drawPhotoPlaceholder(ctx, i);
@@ -165,7 +197,27 @@ export function Shelf({ books, binders, photos }: { books: SceneBook[]; binders:
       cancelled = true;
       for (const texture of disposables) texture.dispose();
     };
-  }, [index, books, binders, photos, invalidate]);
+  }, [index, map, shelf, photos, invalidate]);
+
+  // real covers on the front boards: face-out books right away, the rest once you're at the shelf
+  // (they only show when a book is in your hand)
+  const atShelf = focus === "shelf";
+  useEffect(() => {
+    if (!index || !map) return;
+    const tier = detectTier();
+    for (const mesh of index.slots.cover) {
+      const id = index.itemOf.get(mesh);
+      const book = id ? map.books.get(id) : null;
+      if (!book?.cover) continue;
+      const faceout = Boolean(index.items.get(id!)?.userData.faceout);
+      if (!faceout && !atShelf) continue;
+      const src = book.cover[tier];
+      // covers stay loaded for the visit (coming back to the shelf shouldn't reload them)
+      if (mesh.userData.coverSrc === src) continue;
+      mesh.userData.coverSrc = src;
+      applyTexture(mesh, coverTexture(src, () => invalidate()));
+    }
+  }, [index, map, atShelf, invalidate]);
 
   return null;
 }

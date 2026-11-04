@@ -8,6 +8,8 @@ takeaway: "TODO(Ömer): the one-line takeaway"
 cover:
   src: /content/books/zero-to-one.jpg
   alt: "Zero to One by Peter Thiel with Blake Masters, book cover"
+spine:
+  color: "#6482a4"
 ---
 
 TODO(Ömer): your notes on this book. What stuck with you, a quote you underlined, who you'd give it to.

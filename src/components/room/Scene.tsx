@@ -5,6 +5,8 @@ import { Suspense, useEffect } from "react";
 import type { SceneData } from "@/lib/content/scene-data";
 import { useRoom } from "@/lib/store";
 import { CameraRig } from "./CameraRig";
+import { Inspector } from "./Inspector";
+import { LetterProjector } from "./LetterProjector";
 import { Lights } from "./Lights";
 import { LiveTextures } from "./LiveTextures";
 import { Globe } from "./objects/Globe";
@@ -15,6 +17,7 @@ import { Projector } from "./Projector";
 import { ReadySignal } from "./ReadySignal";
 import { Room } from "./Room";
 import { ScreenProjector } from "./ScreenProjector";
+import { Spotlight } from "./Spotlight";
 
 /** Mirrors three's loading manager into the store, so the DOM loader doesn't import three. */
 function LoadProgress() {
@@ -34,15 +37,18 @@ export function Scene({ data }: { data: SceneData }) {
       <Suspense fallback={null}>
         <Room />
         <LiveTextures data={data} />
-        <Shelf books={data.books} binders={data.binders} photos={data.photos} />
+        <Shelf books={data.books} shelf={data.shelf} photos={data.photos} />
         <Globe places={data.places} />
         <Hoop hoop={data.hoop} />
         <Mailbox />
+        <Inspector />
+        <Spotlight />
         <ReadySignal />
       </Suspense>
       <CameraRig />
       <Projector />
       <ScreenProjector />
+      <LetterProjector />
     </>
   );
 }

@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ContentError, loadAllContent } from "../src/lib/content/load";
+import { SHELF_PROPS } from "../src/lib/shelf-props";
 
 function walk(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -15,6 +16,11 @@ function walk(dir: string): string[] {
 
 try {
   const c = loadAllContent();
+  // every modeled thing on the shelf tells a shelf item's story (src/lib/shelf-props.ts)
+  const slugs = new Set(c.shelfItems.map((i) => i.slug));
+  for (const [prop, { item }] of Object.entries(SHELF_PROPS)) {
+    if (!slugs.has(item)) throw new ContentError(`src/lib/shelf-props.ts: "${prop}" tells the story of content/shelf/${item}.md, which doesn't exist (renamed? update SHELF_PROPS)`);
+  }
   console.log(
     `✓ content OK — ${c.shelfItems.length} shelf items, ${c.books.length} books, ` +
       `${c.computerApps.length} computer apps, ${c.phoneApps.length} phone apps, ${c.globePlaces.length} places`,
