@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { CHAPTERS, parsePath } from "@/lib/routes";
 import { useRoom } from "@/lib/store";
 import { resolveNightness } from "@/lib/time-of-day";
 
@@ -23,11 +25,23 @@ export function WithTodos({ text }: { text: string }) {
 }
 
 /** Progress comes from the 3D chunk (LoadProgress in Scene.tsx), so this stays three-free. */
-export function Loader() {
+export function Loader({ name }: { name: string }) {
   const progress = useRoom((s) => s.loadProgress);
   const ready = useRoom((s) => s.sceneReady);
+  // from the URL, so the server renders it too (the still is in the first paint)
+  const { chapter } = parsePath(usePathname());
+  // the overview: a still of the room (taken from the 3D, `pnpm posters`) that the real one fades
+  // in over; a chapter with a caption: the dimmed room's dark, so its words can show at once
+  const ground = !chapter ? "poster" : CHAPTERS[chapter].kind === "caption" ? "dark" : "plain";
   return (
-    <div className="loader" data-done={ready ? "1" : "0"} aria-hidden={ready} role="status" aria-live="polite">
+    <div className="loader" data-done={ready ? "1" : "0"} data-ground={ground} aria-hidden={ready} role="status" aria-live="polite">
+      {ground === "poster" ? (
+        <>
+          <div className="loader-poster" aria-hidden="true" />
+          {/* whose room it is, while it loads (and the page's largest early paint, for LCP) */}
+          <p className="loader-name">{name}</p>
+        </>
+      ) : null}
       <div className="loader-bar" aria-hidden="true">
         <span style={{ transform: `scaleX(${Math.max(0.04, progress / 100)})` }} />
       </div>
@@ -57,6 +71,7 @@ export function Toast() {
 export function TimeKeeper() {
   const override = useRoom((s) => s.timeOverride);
   const nightness = useRoom((s) => s.nightness);
+  const first = useRef(true);
 
   useEffect(() => {
     let raf = 0;
@@ -77,7 +92,10 @@ export function TimeKeeper() {
       raf = requestAnimationFrame(step);
     };
     const { reducedMotion, testMode } = useRoom.getState();
-    ease(resolveNightness(override), reducedMotion || testMode ? 0 : 1400);
+    // the first time, start where the page already is (the loader's still matches it); later
+    // changes (the window's switch, the clock passing dusk) ease
+    ease(resolveNightness(override), reducedMotion || testMode || first.current ? 0 : 1400);
+    first.current = false;
     const interval = window.setInterval(() => ease(resolveNightness(override), 4000), 60_000);
     return () => {
       cancelAnimationFrame(raf);

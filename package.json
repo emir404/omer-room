@@ -26,7 +26,8 @@
     "postinstall": "node scripts/copy-basis.mjs",
     "shots": "tsx scripts/screenshots.ts",
     "covers": "tsx scripts/fetch-covers.ts",
-    "perf": "tsx scripts/perf.ts"
+    "perf": "tsx scripts/perf.ts",
+    "posters": "tsx scripts/capture-posters.ts"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

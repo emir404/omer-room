@@ -79,7 +79,9 @@ export function Spotlight() {
     const material = quad.material as ShaderMaterial;
     material.uniforms.uColor!.value.copy(night ? COLOR.night : COLOR.day);
     const delta = Math.min(rawDelta, 0.05);
-    state.alpha = reducedMotion || testMode ? goal : MathUtils.damp(state.alpha, goal, 6, delta);
+    // the first frames of a deep link start dimmed: the loader's dark fades straight into it
+    const first = !useRoom.getState().sceneReady;
+    state.alpha = reducedMotion || testMode || first ? goal : MathUtils.damp(state.alpha, goal, 6, delta);
     if (Math.abs(state.alpha - goal) < 0.002) state.alpha = goal;
     material.uniforms.uAlpha!.value = state.alpha;
     // visible (at zero) until the room is ready, so its shader compiles with the rest up front

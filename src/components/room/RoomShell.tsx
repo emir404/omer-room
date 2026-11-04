@@ -105,9 +105,9 @@ export function RoomShell({ data, chapters, text, children }: { data: SceneData;
           </div>
           <Hotspots objects={data.objects} />
           {chapters.letter.image ? <LetterSurface image={chapters.letter.image} /> : null}
-          <Loader />
         </>
       ) : null}
+      <Loader name={data.name} />
       <RouteSync />
       <DocAnchor />
       <TimeKeeper />

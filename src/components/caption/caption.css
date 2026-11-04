@@ -368,6 +368,7 @@ a.cap-row:hover .cap-chevron {
   align-items: center;
   gap: 4px;
   min-width: 0;
+  max-width: 100%;
   padding: 8px 4px;
   font-size: 13px;
   line-height: 18px;

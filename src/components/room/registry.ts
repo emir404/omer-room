@@ -12,7 +12,7 @@ export const overlay: {
   selection: HTMLElement | null;
   /** A hovered sub-target: a thing on the shelf (the whole item), a section plate, a globe pin. */
   subNode: Object3D | null;
-  /** When a click was already handled (putting back what you held): the room ignores it. */
+  /** Event time of a click already handled (putting back what you held): the room ignores it. */
   clickHandledAt: number;
 } = { selection: null, subNode: null, clickHandledAt: -1 };
 

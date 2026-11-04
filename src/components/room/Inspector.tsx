@@ -310,8 +310,9 @@ export function Inspector() {
         if (raycaster.intersectObject(h.node, true).length) return;
       }
       const back = document.querySelector<HTMLAnchorElement>(".cap-live [data-back]")?.getAttribute("href") ?? "/shelf";
-      // this click is spent: it mustn't also pick up whatever is behind (Room.tsx's onClick)
-      overlay.clickHandledAt = performance.now();
+      // this click is spent: it mustn't also pick up whatever is behind (Room.tsx's onClick). By the
+      // event's own time, not the handler's: a busy main thread can deliver the click late
+      overlay.clickHandledAt = e.timeStamp;
       useRoom.getState().navigate(back);
     };
     canvas.addEventListener("pointerdown", onDown);

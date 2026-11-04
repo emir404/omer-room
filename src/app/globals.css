@@ -231,7 +231,8 @@ html[data-mode="room"][data-time="night"] .mode-option:hover {
 .loader {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  /* under the captions (20), so a chapter's words show while the room loads; over the canvas */
+  z-index: 18;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -241,6 +242,65 @@ html[data-mode="room"][data-time="night"] .mode-option:hover {
 }
 .loader[data-done="1"] {
   opacity: 0;
+}
+html:not([data-mode="room"]) .loader {
+  display: none;
+}
+/* the overview: a still of the room (pnpm posters), framed like the 3D (fit to height on wide
+   screens, to width on tall ones), with the progress at the foot */
+.loader[data-ground="poster"] {
+  place-content: start center;
+  padding-top: 22px;
+}
+.loader-poster {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg) url(/poster/room-desktop-day.webp) center / auto 100% no-repeat;
+}
+html[data-time="night"] .loader-poster {
+  background-image: url(/poster/room-desktop-night.webp);
+}
+@media (orientation: portrait) {
+  .loader-poster {
+    background-size: 100% auto;
+  }
+}
+@media (max-width: 767px) {
+  .loader-poster {
+    background-image: url(/poster/room-mobile-day.webp);
+  }
+  html[data-time="night"] .loader-poster {
+    background-image: url(/poster/room-mobile-night.webp);
+  }
+}
+.loader-name {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--ss-text-strong);
+}
+html[data-time="night"] .loader-name {
+  color: #fff;
+}
+
+/* a chapter with a caption: the dimmed room's dark; the progress sits where the object will be */
+.loader[data-ground="dark"] {
+  background: #110d0a;
+  padding-right: calc(clamp(340px, 30vw, 440px) + 68px);
+}
+.loader[data-ground="dark"] .loader-bar {
+  background: rgb(255 255 255 / 0.12);
+}
+.loader[data-ground="dark"] .loader-text {
+  color: rgb(255 255 255 / 0.6);
+}
+@media (max-width: 767px) {
+  .loader[data-ground="dark"] {
+    padding-right: 0;
+    padding-bottom: 52svh;
+  }
 }
 .loader-bar {
   width: 160px;

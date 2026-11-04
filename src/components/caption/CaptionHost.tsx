@@ -39,7 +39,9 @@ export function CaptionHost({ data }: { data: ChapterData }) {
     }
   }, [view]);
 
-  const shown = Boolean(view) && ready && atRest;
+  // before the room is ready the words already show (over the loader's dark); after, once the
+  // camera has arrived
+  const shown = Boolean(view) && (!ready || atRest);
 
   // focus the caption's heading once it's up; give focus back to the object's button on close
   const lastChapter = useRef<ChapterId | null>(chapter);
@@ -81,7 +83,7 @@ export function CaptionHost({ data }: { data: ChapterData }) {
           <div className="cap-scroll">
             <CaptionChrome view={view}>{view.node}</CaptionChrome>
           </div>
-          {view.holding ? <HoldHint /> : null}
+          {view.holding && ready ? <HoldHint /> : null}
         </div>
       ) : null}
     </div>

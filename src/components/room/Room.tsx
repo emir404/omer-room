@@ -248,7 +248,7 @@ export function Room() {
     e.stopPropagation();
     if (e.delta > 8) return; // a drag/swipe, not a click
     // something in your hand: the Inspector handles clicks (and the one that puts it back is spent)
-    if (useRoom.getState().holding || performance.now() - overlay.clickHandledAt < 400) return;
+    if (useRoom.getState().holding || Math.abs(e.nativeEvent.timeStamp - overlay.clickHandledAt) < 600) return;
     const target = resolveTarget(index, e.intersections);
     if (!target) return;
     const { navigate } = useRoom.getState();

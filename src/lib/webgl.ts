@@ -5,8 +5,11 @@
  *   html[data-mode="doc"]  → no WebGL2, `?text=1`, or the /text page
  *   (no attribute)         → JS off → CSS shows the text layout
  *   html[data-webgl="0"]   → this browser can't show the room at all (the 3D switch is disabled)
+ *   html[data-time]        → day or night (?time, the stored choice, else the visitor's clock: night
+ *                            from 19:00 to 06:15, where nightnessAt() passes ½), so the loader's
+ *                            still of the room matches the room that fades in over it
  */
-export const MODE_SCRIPT = `(function(){var d=document.documentElement;try{var c=document.createElement('canvas');var gl=c.getContext('webgl2');d.dataset.webgl=gl?'1':'0';if(gl){var l=gl.getExtension('WEBGL_lose_context');if(l)l.loseContext();}var q=new URLSearchParams(location.search);var t=location.pathname==='/text'||location.pathname==='/text/';d.dataset.mode=gl&&!t&&q.get('text')!=='1'?'room':'doc';}catch(e){d.dataset.mode='doc';d.dataset.webgl='0';}})();`;
+export const MODE_SCRIPT = `(function(){var d=document.documentElement;try{var c=document.createElement('canvas');var gl=c.getContext('webgl2');d.dataset.webgl=gl?'1':'0';if(gl){var l=gl.getExtension('WEBGL_lose_context');if(l)l.loseContext();}var q=new URLSearchParams(location.search);var t=location.pathname==='/text'||location.pathname==='/text/';d.dataset.mode=gl&&!t&&q.get('text')!=='1'?'room':'doc';var w=q.get('time');if(w!=='day'&&w!=='night'){try{w=localStorage.getItem('omer-room:time');}catch(e){}}if(w!=='day'&&w!=='night'){var n=new Date(),m=n.getHours()*60+n.getMinutes();w=m>=1140||m<375?'night':'day';}d.dataset.time=w;}catch(e){d.dataset.mode='doc';d.dataset.webgl='0';}})();`;
 
 export function initialMode(): "room" | "doc" {
   if (typeof document === "undefined") return "doc";
