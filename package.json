@@ -25,7 +25,8 @@
     "test:unit": "tsx --test \"src/**/*.test.ts\"",
     "postinstall": "node scripts/copy-basis.mjs",
     "shots": "tsx scripts/screenshots.ts",
-    "covers": "tsx scripts/fetch-covers.ts"
+    "covers": "tsx scripts/fetch-covers.ts",
+    "perf": "tsx scripts/perf.ts"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

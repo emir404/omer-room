@@ -1,10 +1,11 @@
 # Ömer's Room
 
-Ömer Öztok's personal site: one interactive 3D room. Every object opens a chapter (bookshelf → academics,
-via four labeled binders + real books, computer → work, phone → socials & side projects, window → Kozan,
-framed letter → the OpenAI story, globe → places, mailbox → contact, ball → easter egg). The only UI on the
-page is a 3D/Text switch; `/text` is the whole site on one page. Next.js App Router + React Three Fiber;
-content lives in plain files under `content/`.
+Ömer Öztok's personal site: one interactive 3D room. Every object opens a chapter (bookshelf → academics
+and books, computer → work, phone → socials & side projects, window → Kozan, framed letter → the OpenAI
+story, globe → places, mailbox → contact, ball → easter egg). There are no panels: opening a chapter dims
+the room around its object and puts its words beside it (the caption); things on the shelf (medals, binders,
+real books) come to your hand. The only control is a 3D/Text switch; `/text` is the whole site on one page.
+Next.js App Router + React Three Fiber; content lives in plain files under `content/`.
 
 **Editing content? Read `CONTENT.md` first.** Most changes are text/JSON edits there — no code.
 
@@ -18,7 +19,8 @@ pnpm build && pnpm start -p 3100
 pnpm test             # Playwright e2e (needs `pnpm build` first; starts the server itself)
 pnpm shots            # screenshots of every chapter → test-results/shots/ (server on :3100)
 PW_GPU=1 pnpm shots   # same, rendered on the Mac's GPU (Metal) instead of SwiftShader
-pnpm covers           # real book covers from Open Library (books with an `isbn`)
+pnpm covers           # real book covers from Open Library (by isbn, else title + author) + spine colors
+PW_GPU=1 pnpm perf    # load, frame pacing, draw calls, idle frames (server on :3100); PERF_PHONE=1 for a phone
 pnpm art              # Blender art pipeline: sources → views → textures → room → bake → export → assets
 pnpm art preview -- day room 128   # Cycles renders from the site's cameras → art/previews/
 pnpm assets           # art/out → public/3d (meshopt GLB + KTX2 lightmaps) + src/lib/assets.manifest.json
@@ -32,19 +34,22 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
 
 - `content/` — all words, numbers and image references (validated by `src/lib/content/schemas.ts`).
 - `public/content/<chapter>/` — photos and screenshots referenced from content.
-- `src/app/(room)/` — the room layout (persistent 3D canvas + the text view for no-WebGL) + one route per
-  chapter; pages are server components that render chapter content. `src/app/(text)/text` — the text
-  version (no 3D bundle); `/map` redirects there.
+- `src/app/(room)/` — the room layout (persistent 3D canvas, the captions, the text view for no-WebGL) + one
+  route per chapter; pages only carry metadata (and the screens' headings): what a chapter says is its
+  caption. `src/app/(text)/text` — the text version (no 3D bundle); `/map` redirects there.
 - `src/components/room/` — everything 3D: `RoomCanvas` (lazy chunk), `Room` (GLB binding + pointer),
-  `CameraRig` (route → camera), `Projector` (pins/hover label), `ScreenProjector` (maps the live screen UIs
-  onto the monitor/phone), `LiveTextures` (screen cut-outs, window view, ticker, letter), `objects/*`.
-- `src/components/panels/` — `PanelHost` (right-hand sheet / bottom sheet) + the UI blocks (`ui.tsx`).
+  `CameraRig` (route → camera; frames shelf sections), `Spotlight` (dims the room, keeps the object lit),
+  `Inspector` (picking things up), `shelf-map.ts` (which thing opens which story), `Projector` (pins/hover
+  label), `ScreenProjector` (maps the live screen UIs onto the monitor/phone), `LetterProjector`,
+  `LiveTextures` (screen cut-outs, window view, ticker, letter), `objects/*` (shelf, globe, mailbox, hoop).
+- `src/components/caption/` — `CaptionHost` + `views.tsx`: the words beside each object, from the URL and
+  `getChapterData()` (src/lib/content/chapters.ts). `src/components/panels/ui.tsx` — shared content blocks.
 - `src/components/screens/` — the live screens: `ScreenLayer` (DOM behind the canvas, docks when the
   camera arrives), `OmerOS` (the desktop: a "Work" app window), `PhoneUI` (contact card + apps).
 - `src/components/text/TextView` — the whole site on one page (grouped rows that open to the story).
 - `src/components/kit/` — the vendored stageshow kit (MIT): tokens, `Window`, `Phone`, `Row`, `Avatar`.
   `src/components/ui/Row` is a server-safe copy of its Row. UI follows `.agents/skills/stageshow`.
-- `src/lib/` — `scene-contract.ts` (GLB naming), `routes.ts`, `store.ts` (zustand, shared by DOM + 3D),
+- `src/lib/` — `scene-contract.ts` (GLB naming), `shelf-props.ts` (modeled things → shelf stories), `routes.ts`, `store.ts` (zustand, shared by DOM + 3D),
   `assets.ts` + `assets.manifest.json` (which GLB/lightmaps to load; generated), `layout.ts` (numbers
   shared by camera + CSS), `textures/*` (canvas art).
 - `scripts/` — content/scene/budget checks, `build-assets.ts`, `art.mjs` (runs Blender), blockout, screenshots.
@@ -60,7 +65,9 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
   critical-path JS grows past 160 KB gzipped.
 - **The scene contract** (`src/lib/scene-contract.ts`) is the seam between code and art: GLB nodes are named
   `<kind>__<id>[__NN]` (`obj__shelf`, `hit__shelf`, `cam__shelf` + `cam__shelf__target`, `label__shelf`,
-  `screen__computer`, `slot__book__01`…). Behavior binds by name. `pnpm scene:check` validates a GLB.
+  `screen__computer`, `slot__book__01`, `item__medal_gold`, `anchor__section_books`…). Behavior binds by
+  name. `pnpm scene:check` validates a GLB. Items are things you can pick up: an empty oriented +X out of
+  the face you'd show, with closed meshes (no contact culling) that keep their normals.
 - Room meshes get materials from `createRoomMaterial()` only. Runtime textures use `flipY = false` (glTF UVs).
   Static meshes are lit by baked lightmaps (UV1, `userData.bake` → set); only moving things (globe, ball)
   use realtime lights. Changing art = edit `art/blender/`, re-run `pnpm art`, commit `public/3d` + the manifest.
@@ -72,8 +79,14 @@ Append `?test=1` to any URL for deterministic rendering (DPR 1, no animations, f
   wide), phone 402×874 pt. Keep the screen meshes' aspect in `art/blender/layout.py` in sync.
 - UI: one family (Geist), one accent (`--ss-accent`), the kit's greys and shadows, real brand marks only
   (`public/brands`), no invented logos or glyph-in-a-square icons. Hover labels are small dark pills.
-- Accessibility is a requirement: every object has a tab-ordered button; `/map` and the no-WebGL layout must
-  always show all content. Run the e2e suite after changing navigation or panels.
+- No panels, ever: a chapter is its object, lit, with its caption beside it (desktop: right column; phones:
+  under it). The camera leaves the caption's side free (`captionInset`, `LAYOUT.captionPhoneRatio`). Esc
+  steps back one level (item → section → bookcase → room), never `history.back()`.
+- Performance: the canvas renders on demand; nothing may invalidate every frame at rest (the ticker pauses
+  out of view and after 20 s idle). Shaders compile before ready (warm new materials there). Big texture
+  sets load staggered (covers). Check with `PW_GPU=1 pnpm perf`: a still room draws 0 frames.
+- Accessibility is a requirement: every object has a tab-ordered button; captions are real headings and
+  links; `/text` and the no-WebGL layout always show all content. Run the e2e suite after changing navigation.
 - Never publish: Common App IDs (CAID/CEEB), the CV's "household responsibilities" section, or the raw
   voice notes (`*.m4a` are git-ignored).
 

@@ -82,10 +82,12 @@ export function Spotlight() {
     state.alpha = reducedMotion || testMode ? goal : MathUtils.damp(state.alpha, goal, 6, delta);
     if (Math.abs(state.alpha - goal) < 0.002) state.alpha = goal;
     material.uniforms.uAlpha!.value = state.alpha;
-    quad.visible = state.alpha > 0.001;
+    // visible (at zero) until the room is ready, so its shader compiles with the rest up front
+    // instead of stalling the first chapter you open
+    quad.visible = state.alpha > 0.001 || !useRoom.getState().sceneReady;
 
     // what stays lit: the thing in your hand, else the chapter's object
-    const root = (quad.visible && (holding ? index.items.get(holding) : on ? index.objects.get(focus as never) : undefined)) || null;
+    const root = (state.alpha > 0.001 && (holding ? index.items.get(holding) : on ? index.objects.get(focus as never) : undefined)) || null;
     if (root !== state.root) {
       state.root = root;
       state.keep = new Set();

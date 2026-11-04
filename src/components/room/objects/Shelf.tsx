@@ -202,9 +202,11 @@ export function Shelf({ books, shelf, photos }: { books: SceneBook[]; shelf: Sce
   // real covers on the front boards: face-out books right away, the rest once you're at the shelf
   // (they only show when a book is in your hand)
   const atShelf = focus === "shelf";
+  const holding = useRoom((s) => s.holding);
   useEffect(() => {
     if (!index || !map) return;
     const tier = detectTier();
+    const queue: { mesh: Mesh; src: string; first: boolean }[] = [];
     for (const mesh of index.slots.cover) {
       const id = index.itemOf.get(mesh);
       const book = id ? map.books.get(id) : null;
@@ -214,10 +216,21 @@ export function Shelf({ books, shelf, photos }: { books: SceneBook[]; shelf: Sce
       const src = book.cover[tier];
       // covers stay loaded for the visit (coming back to the shelf shouldn't reload them)
       if (mesh.userData.coverSrc === src) continue;
-      mesh.userData.coverSrc = src;
-      applyTexture(mesh, coverTexture(src, () => invalidate()));
+      queue.push({ mesh, src, first: id === holding });
     }
-  }, [index, map, atShelf, invalidate]);
+    // the one in your hand first; the rest one at a time, so their uploads never land in one frame
+    queue.sort((a, b) => Number(b.first) - Number(a.first));
+    let timer = 0;
+    const next = () => {
+      const job = queue.shift();
+      if (!job) return;
+      job.mesh.userData.coverSrc = job.src;
+      applyTexture(job.mesh, coverTexture(job.src, () => invalidate()));
+      timer = window.setTimeout(next, 90);
+    };
+    next();
+    return () => window.clearTimeout(timer);
+  }, [index, map, atShelf, holding, invalidate]);
 
   return null;
 }

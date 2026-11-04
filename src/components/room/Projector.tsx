@@ -117,11 +117,13 @@ export function Projector() {
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   };
 
-  // ?test=1 only: lets Playwright click real 3D objects ("where is the letter on screen?")
+  // test hooks: lets Playwright click real 3D objects ("where is the letter on screen?")
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
+  const gl = useThree((s) => s.gl);
   useEffect(() => {
-    if (!index || !useRoom.getState().testMode) return;
+    // ?test=1 (Playwright) or ?perf=1 (`pnpm perf`, real animations)
+    if (!index || !(useRoom.getState().testMode || window.location.search.includes("perf=1"))) return;
     (window as unknown as { __roomTest?: unknown }).__roomTest = {
       center(id: ObjectId) {
         const hit = index.hits.get(id);
@@ -136,6 +138,18 @@ export function Projector() {
       },
       /** What's in your hand. */
       holding: () => useRoom.getState().holding,
+      /** Go somewhere the way a click does (camera + URL). */
+      navigate: (href: string) => useRoom.getState().navigate(href),
+      /** Renderer counters for `pnpm perf`: the last frame's draw calls and triangles, GPU objects. */
+      info: () => ({
+        frame: gl.info.render.frame,
+        calls: gl.info.render.calls,
+        triangles: gl.info.render.triangles,
+        textures: gl.info.memory.textures,
+        geometries: gl.info.memory.geometries,
+        programs: gl.info.programs?.length ?? 0,
+        dpr: gl.getPixelRatio(),
+      }),
     };
   });
 

@@ -4,16 +4,18 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import {
   Box3,
-  BufferGeometry,
+  type BufferGeometry,
   type Camera,
+  DataTexture,
   type Material,
   MathUtils,
   Matrix4,
-  type Mesh,
+  Mesh,
   type MeshBasicMaterial,
   MeshStandardMaterial,
   type Object3D,
   type PerspectiveCamera,
+  PlaneGeometry,
   Quaternion,
   Raycaster,
   Vector2,
@@ -99,6 +101,7 @@ export function Inspector() {
   const item = useRoom((s) => s.item);
   const picked = useRoom((s) => s.picked);
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const invalidate = useThree((s) => s.invalidate);
   const held = useMemo(() => new Map<string, Held>(), []);
@@ -293,6 +296,42 @@ export function Inspector() {
       window.removeEventListener("pointercancel", onUp);
     };
   }, [gl, camera, held, drag, invalidate]);
+
+  // the studio material's two variants (with a picture, without), compiled with the room up front
+  // so the first thing you pick up doesn't stall on a shader compile
+  useEffect(() => {
+    if (!index) return;
+    const geometry = new PlaneGeometry(0.001, 0.001);
+    const picture = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    picture.needsUpdate = true;
+    const meshes = [picture, null].map((map) => {
+      const mesh = new Mesh(geometry, new MeshStandardMaterial({ map, envMap: index.envMap, transparent: true }));
+      mesh.frustumCulled = false;
+      mesh.position.set(0, -50, 0);
+      return mesh;
+    });
+    scene.add(...meshes);
+    const done = () => {
+      scene.remove(...meshes);
+      for (const mesh of meshes) (mesh.material as MeshStandardMaterial).dispose();
+      geometry.dispose();
+      picture.dispose();
+    };
+    if (useRoom.getState().sceneReady) {
+      // the room was already up (a new GLB in dev): nothing to warm
+      done();
+      return;
+    }
+    const unsubscribe = useRoom.subscribe((s) => {
+      if (!s.sceneReady) return;
+      unsubscribe();
+      done();
+    });
+    return () => {
+      unsubscribe();
+      done();
+    };
+  }, [index, scene]);
 
   // a new GLB: whatever was in your hand goes back first
   useEffect(() => {

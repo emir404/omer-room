@@ -124,14 +124,22 @@ export function LiveTextures({ data }: { data: SceneData }) {
     }
 
     const { testMode } = useRoom.getState();
-    const start = performance.now();
+    // the scroll position is its own clock, so a pause resumes where it stopped
+    let t = testMode ? 2.5 : 0;
     const draw = () => {
-      // tests freeze the clock so screenshots are stable
-      const t = testMode ? 2.5 : (performance.now() - start) / 1000;
       drawTicker(ticker.ctx, data.now, t, useRoom.getState().nightness);
       tickerTexture.needsUpdate = true;
       invalidate();
     };
+    // Every tick redraws the whole room (the canvas renders on demand), so the ticker only scrolls
+    // while it's in view (the overview, the globe) and someone is around: it rests after 20 s
+    // without input, and a still room then draws no frames at all.
+    let lastInput = performance.now();
+    const onInput = () => {
+      lastInput = performance.now();
+    };
+    const inputs = ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"] as const;
+    for (const type of inputs) window.addEventListener(type, onInput, { passive: true });
     let timer = 0;
     let disposed = false;
     void ensureFonts().then(() => {
@@ -139,7 +147,11 @@ export function LiveTextures({ data }: { data: SceneData }) {
       draw();
       if (testMode) return;
       timer = window.setInterval(() => {
-        if (document.visibilityState === "visible") draw();
+        const { focus } = useRoom.getState();
+        const inView = focus === "room" || focus === "globe";
+        if (document.visibilityState !== "visible" || !inView || performance.now() - lastInput > 20_000) return;
+        t += 1 / FPS;
+        draw();
       }, 1000 / FPS);
     });
     const unsubscribe = useRoom.subscribe((s, prev) => {
@@ -149,6 +161,7 @@ export function LiveTextures({ data }: { data: SceneData }) {
     return () => {
       disposed = true;
       window.clearInterval(timer);
+      for (const type of inputs) window.removeEventListener(type, onInput);
       unsubscribe();
       tickerTexture.dispose();
       placeholder?.dispose();
