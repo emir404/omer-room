@@ -96,6 +96,9 @@ export function ScreenLayer({ data }: { data: SceneData }) {
   // on phones the monitor is too small to read: sitting down at the computer fills the screen
   const full = docked === "computer" && !isDesktopWidth(vw);
   const computer = full ? { width: vw, height: vh } : computerSize(vw, vh);
+  // full-screen on a phone, the computer runs its compact design: a list of roles (/computer), then a
+  // role page; on the monitor it's always the Mac, showing the last role you opened
+  const osActive = full ? (chapter === "computer" ? item : null) : chapter === "computer" ? (item ?? lastApp) : lastApp;
 
   useEffect(() => {
     if (docked) document.documentElement.dataset.docked = full ? "computer-full" : docked;
@@ -109,10 +112,21 @@ export function ScreenLayer({ data }: { data: SceneData }) {
     <div className="screens" data-docked={docked ?? undefined} data-full={full ? "1" : undefined} data-ready={ready ? "1" : "0"}>
       {docked ? <button type="button" className="screens-backdrop" aria-label="Step back into the room" tabIndex={-1} onClick={() => navigate("/")} /> : null}
       <Slot id="computer" width={computer.width} height={computer.height} docked={docked === "computer"} full={full} label="Ömer's computer">
-        <OmerOS apps={data.computer} active={chapter === "computer" ? (item ?? lastApp) : lastApp} name={data.name} />
+        <OmerOS apps={data.computer} active={osActive} name={data.name} location={data.location} layout={full ? "compact" : "wide"} />
       </Slot>
       <Slot id="phone" width={PHONE.width} height={PHONE.height} docked={docked === "phone"} label="Ömer's phone">
-        <PhoneUI apps={data.phone} socials={data.socials} name={data.name} tagline={data.tagline} email={data.email} active={chapter === "phone" ? item : null} />
+        <PhoneUI
+          apps={data.phone}
+          socials={data.socials}
+          name={data.name}
+          tagline={data.tagline}
+          email={data.email}
+          active={chapter === "phone" ? item : null}
+          awake={docked === "phone"}
+          now={data.now}
+          location={data.location}
+          calUrl={data.calUrl}
+        />
       </Slot>
     </div>
   );

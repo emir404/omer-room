@@ -1,5 +1,9 @@
-/* The live screens: the layer behind the canvas, the desktop (OmerOS) and the phone (PhoneUI).
-   Each UI is laid out at its own design size; ScreenProjector maps it onto its screen. */
+/* The live screens: the layer behind the canvas, plus what the desktop (OmerOS, omer-os.css,
+   omer-compact.css) and the phone (PhoneUI, phone-ui.css) share: the wallpaper and the content
+   blocks from parts.tsx. Each UI is laid out at its own design size; ScreenProjector maps it onto
+   its screen. Nothing here animates at idle, and only the menu bar would ever earn a blur. */
+
+/* ------------------------------------------------------------------ the layer (ScreenLayer) */
 
 .screens {
   position: fixed;
@@ -52,429 +56,172 @@
   cursor: default;
 }
 
-/* ------------------------------------------------------------------ the desktop (16:10) */
+/* ------------------------------------------------------------------ the wallpaper */
 
-.os {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--ss-font);
-  color: var(--ss-text-strong);
-  user-select: none;
+/* One wallpaper for both devices, the way a Mac and an iPhone ship as a pair: first light over
+   the Taurus foothills, a deep sky going pale at the horizon and warm where the sun comes up.
+   At night (the room's clock, html[data-time]) it turns to dusk, like a dynamic wallpaper. */
+:root {
+  --omer-wall:
+    radial-gradient(64% 52% at 74% 106%, rgb(255 186 128 / 0.9) 0%, rgb(255 186 128 / 0) 72%),
+    radial-gradient(120% 70% at 12% -12%, rgb(24 56 128 / 0.5) 0%, rgb(24 56 128 / 0) 64%),
+    linear-gradient(in oklab 179deg, #2f63ad 0%, #5389cb 22%, #9dbbe0 46%, #e4dbd2 68%, #f2c6a1 84%, #ec9f6c 100%);
 }
-.os-wallpaper {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(55% 70% at 12% 18%, rgb(255 214 170 / 0.95), transparent 62%),
-    radial-gradient(60% 75% at 88% 10%, rgb(168 205 224 / 0.9), transparent 58%),
-    radial-gradient(70% 70% at 78% 92%, rgb(232 89 12 / 0.75), transparent 62%),
-    radial-gradient(60% 60% at 20% 95%, rgb(120 86 110 / 0.7), transparent 60%),
-    linear-gradient(160deg, #f1d6bd 0%, #d9a98a 55%, #8d6676 100%);
-}
-.os-menubar {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  height: 28px;
-  padding: 0 16px;
-  background: rgb(255 255 255 / 0.4);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  font-size: 13px;
-  font-weight: 500;
-  color: #1d1d1f;
-}
-.os-menubar-app {
-  font-weight: 700;
-}
-.os-menubar-spacer {
-  flex: 1;
-}
-.os-menubar svg {
-  flex: none;
-}
-.os-menubar .clock {
-  font-variant-numeric: tabular-nums;
-  white-space: pre;
+html[data-time="night"] {
+  --omer-wall:
+    radial-gradient(60% 46% at 74% 108%, rgb(222 128 86 / 0.55) 0%, rgb(222 128 86 / 0) 72%),
+    radial-gradient(120% 70% at 12% -12%, rgb(4 8 26 / 0.6) 0%, rgb(4 8 26 / 0) 64%),
+    linear-gradient(in oklab 179deg, #070d24 0%, #0f1e48 30%, #213b74 58%, #52648f 80%, #a98278 100%);
 }
 
-.os-window.ss-window {
-  position: absolute;
-  top: 46px;
-  left: 28px;
-  right: 28px;
-  bottom: 28px;
-  background: var(--ss-surface);
-  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.28), 0 28px 70px -18px rgb(40 20 10 / 0.55), 0 10px 24px -12px rgb(0 0 0 / 0.3);
-}
-.os-window .ss-window__side {
-  position: relative;
-  background: #f4f3f1;
-}
-.os-window .ss-window__bar {
-  height: 52px;
-  padding: 0 16px 0 24px;
-  border-bottom: 1px solid var(--ss-line);
-  background: var(--ss-surface);
-}
-.os-window .ss-window__heading {
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-}
-.os-window .ss-window__side-top {
-  height: 52px;
-}
-.os-window .ss-window__body {
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-.os-close {
-  position: absolute;
-  top: 16px;
-  left: 6px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-}
-.os-close:focus-visible {
-  outline-offset: -4px;
-}
-.os-side {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 4px 10px 14px;
-}
-.os-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  margin: 0 2px 14px;
-  padding: 0 9px;
-  border-radius: 7px;
-  background: rgb(0 0 0 / 0.05);
-  color: var(--ss-text-faint);
-  font-size: 13px;
-}
-.os-side-label {
-  padding: 0 10px 6px;
-  font-size: 11px;
-  font-weight: 650;
-  color: var(--ss-text-faint);
-}
-.os-side ul {
-  list-style: none;
-  display: grid;
-  gap: 1px;
-}
-.os-side-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 7px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ss-text-strong);
-}
-.os-side-item:hover {
-  background: rgb(0 0 0 / 0.04);
-}
-.os-side-item[data-selected] {
-  background: rgb(0 0 0 / 0.08);
-}
-.os-side-icon {
-  flex: none;
-  color: var(--ss-accent);
-}
-.os-side-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* ------------------------------------------------------------------ shared content blocks */
+
+/* a meta line ("Co-Founder & CEO · Grades 11–12 · 30 hrs/week") breaks only at its dots */
+.meta-part {
   white-space: nowrap;
 }
-.os-side-text mark.todo::before {
-  content: none;
+
+/* placeholders inside the screens: a whole-paragraph "to add" becomes a quiet note */
+.todo-note {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff8e9;
+  box-shadow: inset 0 0 0 1px rgb(138 83 0 / 0.12);
+  color: var(--todo-ink);
 }
-.os-side-owner {
-  margin-top: auto;
-  padding: 0 10px;
-  font-size: 12px;
-  color: var(--ss-text-faint);
+.todo-note mark.todo {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
 }
-.os-toolbar-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 11px;
-  border-radius: 7px;
-  background: var(--ss-ink-2);
-  font-size: 13px;
-  font-weight: 550;
+
+.story > * + * {
+  margin-top: 0.75em;
+}
+.story h3 {
   color: var(--ss-text-strong);
 }
-.os-toolbar-link:hover {
-  background: var(--ss-ink-4);
+.story > h3 + * {
+  margin-top: 0.4em;
 }
-.os-doc {
-  display: grid;
-  gap: 22px;
-  max-width: 720px;
-  padding: 22px 24px 40px;
+.story a {
+  color: var(--ss-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.os-kicker {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ss-text);
+.story code {
+  font-family: var(--ss-mono);
+  font-size: 0.88em;
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: rgb(138 83 0 / 0.08);
 }
-.os-summary {
-  margin-top: -14px;
-  font-size: 19px;
-  line-height: 27px;
-  font-weight: 500;
-  letter-spacing: -0.012em;
-  color: var(--ss-text-strong);
-  max-width: 34em;
+.story ul,
+.story ol {
+  padding-left: 1.2em;
+  list-style: disc;
 }
-.os-doc .stats {
-  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.6fr);
-  align-items: start;
-  gap: 28px;
-}
-.os-doc .stat-value {
-  font-size: 40px;
-  line-height: 44px;
-}
-.os-doc .stat-list {
-  grid-template-columns: 1fr 1fr;
-  column-gap: 24px;
-}
-.os-doc .prose {
-  font-size: 14.5px;
-  max-width: 40em;
-}
-.os-shots {
+
+.shots {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
-.os-shots img {
+.shot-frame {
+  display: block;
+  overflow: hidden;
+  background: var(--ss-ink-1);
+}
+.shot-frame img {
   display: block;
   width: 100%;
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 8px 20px -10px rgb(0 0 0 / 0.35);
-}
-
-/* ------------------------------------------------------------------ the phone (402 × 874 pt) */
-
-.ph.ss-phone {
-  box-shadow: none;
-  color: #000;
-  font-family: var(--ss-font);
-}
-.ph .ss-phone__content {
-  display: flex;
-  flex-direction: column;
   height: 100%;
-  padding-left: 0;
-  padding-right: 0;
+  object-fit: cover;
 }
-.ph-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  padding: 6px 16px 48px;
+.shot-frame[data-crop] img {
+  object-position: 42% 0;
 }
-.ph-scroll::-webkit-scrollbar {
-  display: none;
+.shots figcaption {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ss-text);
 }
-.ph-profile {
+/* a website's screenshot in the kit's browser chrome: quiet grey lights, the address centred in
+   its pill (as Safari sets it), the page edge to edge under the bar */
+.shot-browser.ss-window {
+  background: #fff;
+}
+.shot-browser .ss-window__bar {
+  height: 34px;
+}
+.shot-browser .ss-window__url {
+  flex: 0 1 340px;
+  margin: 0 auto;
+  translate: -24px 0;
+  padding: 3px 12px;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--ss-text);
+}
+.shot-browser .shot-frame {
+  border-radius: 0;
+  box-shadow: none;
+}
+/* no screenshots yet: a tidy slot that says what goes there */
+.shots-slot {
   display: grid;
+  place-content: center;
   justify-items: center;
-  gap: 4px;
-  padding: 18px 8px 22px;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px;
+  border-radius: 16px;
+  background: #f6f5f3;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.04);
+  color: var(--ss-icon-faint);
   text-align: center;
 }
-.ph-profile .ss-avatar {
-  margin-bottom: 8px;
+.shots-slot svg {
+  margin-bottom: 4px;
 }
-.ph-name {
-  font-size: 28px;
-  line-height: 34px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.ph-tagline {
-  font-size: 15px;
-  line-height: 20px;
-  color: #6c6c70;
-  max-width: 30ch;
-}
-.ph-actions {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-.ph-action {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 6px;
-  height: 64px;
-  border-radius: 14px;
-  background: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  color: #1c1c1e;
-}
-.ph-action[data-todo] {
-  opacity: 0.55;
-}
-.ph-mark {
-  display: block;
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-}
-.ph-mark-mail {
-  color: var(--ss-accent);
-}
-.ph-group {
-  margin-top: 26px;
-}
-.ph-group h3 {
-  padding: 0 16px 7px;
+.shots-slot p {
   font-size: 13px;
-  font-weight: 400;
-  color: #6c6c70;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  line-height: 18px;
 }
-.ph-list {
-  list-style: none;
-  border-radius: 12px;
-  background: #fff;
-  overflow: hidden;
-}
-.ph-list > li + li {
-  position: relative;
-}
-.ph-list > li + li::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 16px;
-  right: 0;
-  height: 0.5px;
-  background: rgb(60 60 67 / 0.29);
-}
-.ph-list .ss-row {
-  border-radius: 0;
-  --ss-row-pad: 14px;
-}
-.ph-list .ss-row__title mark.todo::before,
-.ph-list .ss-row__subtitle mark.todo::before {
-  content: none;
-}
-.ph .row-chevron {
-  color: #c4c4c7;
+.shots-slot mark.todo {
+  font-size: 13px;
 }
 
-.ph-page {
-  display: grid;
-  gap: 16px;
-}
-.ph-nav {
-  height: 44px;
+.link-pills {
+  list-style: none;
   display: flex;
-  align-items: center;
-  margin: 0 -8px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.ph-back {
+.link-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0;
-  height: 44px;
-  padding: 0 8px 0 2px;
-  font-size: 17px;
-  color: var(--ss-accent);
+  gap: 6px;
+  white-space: nowrap;
 }
-.ph-title {
-  margin-top: -8px;
-  font-size: 30px;
-  line-height: 36px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.link-pill[data-todo] {
+  color: var(--ss-text);
 }
-.ph-subtitle {
-  margin-top: -12px;
-  font-size: 15px;
-  color: #6c6c70;
+
+/* ------------------------------------------------------------------ motion guards */
+
+/* reduced motion: globals.css collapses durations; the delays that stage a wake or a push go too */
+@media (prefers-reduced-motion: reduce) {
+  :is(.ph-views, .ph-view, .ph-lock, .osc-view, .ph .ss-phone__time) {
+    transition-delay: 0s !important;
+  }
 }
-.ph-summary {
-  font-size: 17px;
-  line-height: 24px;
-  color: #1c1c1e;
-}
-.ph-card {
-  padding: 16px;
-  border-radius: 12px;
-  background: #fff;
-}
-.ph-card:empty {
-  display: none;
-}
-.ph .stat-value {
-  font-size: 34px;
-  line-height: 40px;
-}
-.ph .stat-row-value,
-.ph .stat-row-label {
-  font-size: 15px;
-  line-height: 20px;
-}
-.ph .stat-label {
-  font-size: 15px;
-}
-.ph-prose .prose {
-  font-size: 16px;
-  line-height: 1.5;
-}
-.ph .pills .pill {
-  height: 36px;
-  font-size: 15px;
-  background: #fff;
-}
-.ph-cta {
-  display: grid;
-  place-items: center;
-  height: 50px;
-  border-radius: 14px;
-  background: var(--ss-accent);
-  color: #fff;
-  font-size: 17px;
-  font-weight: 600;
-}
-/* the home indicator is a real button: home screen, or put the phone down */
-.ph-home-bar {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  z-index: 3;
-  width: 180px;
-  height: 30px;
-  transform: translateX(-50%);
+
+/* deterministic screenshots (?test=1): every screen transition lands at once */
+html[data-test="1"] :is(.os-scroll, .osc-view, .osc-glass, .ph-views, .ph-view, .ph-lock, .ph .ss-phone__time, .ph .ss-phone__status, .ph .ss-phone__home) {
+  transition: none !important;
+  animation: none !important;
 }

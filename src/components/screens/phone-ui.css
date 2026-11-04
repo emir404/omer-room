@@ -1,0 +1,486 @@
+/* Ömer's phone, in iPhone points (the kit's Phone, 402 × 874; the 3D model is the bezel, so the
+   frame is "bare"). Three layers: the views (his card, an app page pushed over it), the lock
+   screen over them while the phone sits on the desk, and the kit's status bar, island and home
+   indicator on top. iOS proportions throughout: 17pt rows, 34pt large titles, inset grouped
+   cards on #f2f2f7. Nothing moves at idle; waking, pushing and locking are one-off transitions. */
+
+.ph.ss-phone {
+  --ph-push: cubic-bezier(0.3, 0.75, 0.1, 1);
+  --ph-secondary: rgb(60 60 67 / 0.6);
+  --ph-sep: rgb(60 60 67 / 0.18);
+  --ph-bg: #f2f2f7;
+  box-shadow: none;
+  color: #000;
+}
+/* one family on every screen, the status bar's time included */
+.ph .ss-phone__screen,
+.ph .ss-phone__time {
+  font-family: var(--ss-font);
+  font-variation-settings: normal;
+  -webkit-tap-highlight-color: transparent;
+}
+.ph .ss-phone__time {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: opacity 0.3s ease;
+}
+/* the lock screen carries its own big clock */
+.ph:not([data-awake]) .ss-phone__time {
+  opacity: 0;
+}
+/* the views and the lock screen place themselves under the status bar */
+.ph .ss-phone__content {
+  padding: 0;
+}
+.ph .ss-avatar,
+.ph .ss-phone__status,
+.ph .ss-phone__home {
+  will-change: auto;
+}
+
+/* ------------------------------------------------------------------ wake and sleep */
+
+/* the lock screen is an opaque sheet over his card, as on iOS: waking, it slides up and off while
+   the card settles in from a touch larger; sleeping, it slides back down over the card. Nothing
+   fades, so the two screens' words never show through each other */
+.ph-views {
+  position: absolute;
+  inset: 0;
+  /* its own ink: asleep, the kit's dark screen turns everything white, and the card is still
+     on screen under the sheet as it comes down */
+  color: #000;
+  visibility: hidden;
+  transform: scale(1.04);
+  /* holds as it is until the sheet has covered it */
+  transition: transform 0s 0.45s, visibility 0s 0.45s;
+}
+.ph[data-awake] .ph-views {
+  visibility: visible;
+  transform: none;
+  transition: transform 0.6s var(--ph-push), visibility 0s;
+}
+/* content scrolls up under the status bar and fades there, as iOS's scroll edge does */
+.ph-views::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 62px;
+  background: linear-gradient(var(--ph-bg) 74%, rgb(242 242 247 / 0));
+  pointer-events: none;
+}
+.ph-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--omer-wall);
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+}
+.ph[data-awake] .ph-lock {
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition: transform 0.55s var(--ph-push), visibility 0s 0.55s;
+}
+/* the lock screen's two buttons: a flat dim disc (no live blur on a screen that is re-projected
+   every frame; the wallpaper behind them is a smooth gradient, so they read the same) */
+.ph-lock .ss-lock__control {
+  backdrop-filter: none;
+  background: rgb(14 22 48 / 0.28);
+}
+.ph-lock .ss-lock__date {
+  font-weight: 600;
+}
+.ph-lock .ss-lock__clock {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+/* ------------------------------------------------------------------ push */
+
+.ph-view {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 62px 16px 44px;
+  background: var(--ph-bg);
+  transition: transform 0.5s var(--ph-push), visibility 0s;
+}
+.ph-view::-webkit-scrollbar {
+  display: none;
+}
+.ph-app {
+  transform: translateX(100%);
+  visibility: hidden;
+  box-shadow: -10px 0 30px rgb(0 0 0 / 0.07);
+  transition: transform 0.5s var(--ph-push), visibility 0s 0.5s;
+}
+.ph[data-depth="1"] .ph-app {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.5s var(--ph-push), visibility 0s;
+}
+.ph[data-depth="1"] .ph-home {
+  transform: translateX(-30%);
+  visibility: hidden;
+  transition: transform 0.5s var(--ph-push), visibility 0s 0.5s;
+}
+
+/* ------------------------------------------------------------------ his card */
+
+.ph-card {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+}
+.ph-profile {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 0 14px 4px;
+  text-align: center;
+}
+.ph-profile .ss-avatar {
+  margin-bottom: 8px;
+}
+.ph-name {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+.ph-tagline {
+  max-width: 31ch;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ph-secondary);
+  text-wrap: balance;
+}
+
+/* quick actions: iOS's rounded buttons under a contact's name, each with its real mark */
+.ph-actions {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.ph-action {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  height: 66px;
+  border-radius: 16px;
+  background: #fff;
+  /* 14pt: the phone docks at ~0.79 on an 800px-tall viewport, so this is still 11px there */
+  font-size: 14px;
+  line-height: 17px;
+  font-weight: 500;
+  color: #1c1c1e;
+  transition: background 0.15s;
+}
+a.ph-action:active {
+  background: #e5e5ea;
+}
+.ph-action[aria-disabled] {
+  color: var(--ph-secondary);
+}
+/* a mark keeps its own colours even while its link is still to add (brands.md); it only dims */
+.ph-action[aria-disabled] .ph-mark {
+  opacity: 0.45;
+}
+.ph-mark {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.ph-mark-mail {
+  color: var(--ss-accent);
+}
+
+/* inset grouped lists */
+.ph-group {
+  list-style: none;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+}
+.ph-group > li + li {
+  position: relative;
+}
+.ph-group > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--ph-sep);
+}
+.ph-section {
+  display: grid;
+  gap: 8px;
+}
+.ph-section-title {
+  padding: 0 16px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--ph-secondary);
+}
+.ph-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 11px 14px 11px 16px;
+  color: inherit;
+  transition: background 0.15s;
+}
+.ph-row-link:active {
+  background: #e5e5ea;
+}
+.ph-row-text {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.ph-row-title {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 550;
+}
+.ph-row-sub {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ph-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ph-row-sub mark.todo {
+  font-size: 14px;
+}
+.ph-chevron {
+  flex: none;
+  color: #c4c4c7;
+}
+.ph-field {
+  display: grid;
+  align-content: center;
+  gap: 1px;
+}
+.ph-field-label {
+  font-size: 15px;
+  line-height: 20px;
+  color: #1c1c1e;
+}
+.ph-field-value {
+  font-size: 17px;
+  line-height: 23px;
+  color: #000;
+  text-wrap: pretty;
+}
+.ph-field-value mark.todo {
+  font-size: 14px;
+}
+.ph-tint {
+  color: var(--ss-accent-text);
+}
+
+/* ------------------------------------------------------------------ an app page */
+
+.ph-page {
+  display: grid;
+  gap: 22px;
+}
+.ph-nav {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin: 0 0 -8px;
+}
+.ph-back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.06),
+    0 2px 10px rgb(0 0 0 / 0.07);
+  color: #1c1c1e;
+}
+.ph-back:active {
+  background: #e5e5ea;
+}
+.ph-page-head {
+  display: grid;
+  gap: 4px;
+  padding: 0 4px;
+}
+.ph-page-title {
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+.ph-page-sub {
+  font-size: 17px;
+  line-height: 22px;
+  color: var(--ph-secondary);
+}
+.ph-page-summary {
+  margin-top: 10px;
+  font-size: 17px;
+  line-height: 24px;
+  color: #1c1c1e;
+  text-wrap: pretty;
+}
+.ph-page-summary mark.todo {
+  font-size: 15px;
+}
+.ph-summary-todo {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.ph-stats {
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+}
+.ph-stats-hero {
+  display: grid;
+  gap: 0;
+  padding: 16px 18px 14px;
+}
+.ph-stats-value {
+  font-size: 52px;
+  line-height: 58px;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+.ph-stats-label {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ph-secondary);
+}
+.ph-stats-rows {
+  list-style: none;
+  margin-left: 18px;
+}
+.ph-stats-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 13px 18px 13px 0;
+  border-top: 0.5px solid var(--ph-sep);
+}
+.ph-stats-row-value {
+  flex: none;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.ph-stats-row-label {
+  font-size: 17px;
+  line-height: 22px;
+  color: var(--ph-secondary);
+}
+
+.ph-shots .shot-frame {
+  border-radius: 18px;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08);
+}
+.ph-shots-slot {
+  min-height: 168px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: none;
+}
+.ph-shots-slot p {
+  font-size: 15px;
+  line-height: 20px;
+}
+.ph-shots-slot mark.todo {
+  font-size: 14px;
+}
+
+.ph-story {
+  padding: 0 4px;
+  font-size: 17px;
+  line-height: 25px;
+  color: #1c1c1e;
+}
+.ph-story h3 {
+  margin-top: 1.1em;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+}
+.ph-story .todo-note {
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 21px;
+}
+.ph-links .link-pill {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--ss-radius-pill);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 550;
+}
+
+/* the call to action rides the bottom of the page, clear of the home indicator (a sticky box
+   stops at its scroller's padding edge, hence the inset that cancels the view's bottom padding) */
+.ph-cta-bar {
+  position: sticky;
+  bottom: -44px;
+  z-index: 1;
+  margin: 0 -16px -44px;
+  padding: 30px 16px 42px;
+  background: linear-gradient(rgb(242 242 247 / 0), rgb(242 242 247 / 0.92) 22px, var(--ph-bg) 30px);
+}
+.ph-cta {
+  display: grid;
+  place-items: center;
+  height: 52px;
+  border-radius: 26px;
+  background: var(--ss-accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.ph-cta:active {
+  background: color-mix(in srgb, var(--ss-accent), #000 12%);
+}
+
+/* the home indicator is a real button: home screen, or put the phone down */
+.ph-home-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 3;
+  width: 180px;
+  height: 30px;
+  transform: translateX(-50%);
+}

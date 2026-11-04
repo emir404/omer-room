@@ -1,0 +1,477 @@
+/* ÖmerOS, wide: a macOS 26 (Tahoe) desktop at 16:10, design width 960–1440 (ScreenLayer's
+   computerSize). The menu bar is transparent over the wallpaper, as Tahoe draws it; the Work app
+   is the kit's Window in its Tahoe dress (floating sidebar, large lights, tall icon-and-label
+   toolbar), filled the way macOS fills a window: a small even margin, the wallpaper round it. */
+
+.os {
+  --os-bar: 24px;
+  --os-gap: 14px;
+  --os-glass: rgb(255 255 255 / 0.94);
+  --os-btn-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), inset 0 0.5px 0 #fff, 0 1px 2px rgb(20 30 60 / 0.06), 0 5px 16px rgb(20 30 60 / 0.1);
+  --os-body: #3a3a3c;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--ss-font);
+  color: var(--ss-text-strong);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+.os-wallpaper {
+  position: absolute;
+  inset: 0;
+  background: var(--omer-wall);
+}
+
+/* ------------------------------------------------------------------ menu bar */
+
+.os-menubar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: var(--os-bar);
+  padding: 0 16px 0 20px;
+  color: #fff;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.os-menubar svg {
+  flex: none;
+}
+.os-apple {
+  margin: -2px 2px 0 0;
+}
+.os-menubar-app {
+  font-weight: 700;
+}
+.os-menubar-spacer {
+  flex: 1;
+}
+.os-menubar-clock {
+  margin-left: -2px;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+
+/* ------------------------------------------------------------------ the window */
+
+.os-window.ss-window {
+  position: absolute;
+  top: calc(var(--os-bar) + 8px);
+  left: var(--os-gap);
+  right: var(--os-gap);
+  bottom: var(--os-gap);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.22),
+    0 26px 64px -14px rgb(6 18 46 / 0.5),
+    0 10px 24px -12px rgb(6 18 46 / 0.32);
+}
+
+/* the red light closes the window (back to the room): a real link laid over the kit's dot, the
+   × showing on hover as macOS does. Lights sit 26px in and down (large lights, tall bar) */
+.os-close {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: rgb(77 0 0 / 0.7);
+}
+.os-close svg {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.os-close:hover svg,
+.os-close:focus-visible svg {
+  opacity: 1;
+}
+.os-close:focus-visible {
+  outline-offset: -3px;
+}
+
+/* ---- sidebar ---- */
+
+.os-side {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 4px 8px 10px;
+}
+.os-side-label {
+  margin: 8px 10px 6px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 650;
+  color: var(--ss-text-faint);
+}
+.os-side-list {
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.os-side-link {
+  display: block;
+  border-radius: 10px;
+}
+.os-side .ss-row {
+  --ss-row-title: 13px;
+  --ss-row-subtitle: 12px;
+  --ss-row-line: 17px;
+  --ss-row-line-2: 16px;
+  --ss-row-gap: 1px;
+  column-gap: 9px;
+  padding: 7px 10px 7px 9px;
+  border-radius: 10px;
+  will-change: auto;
+  transition: none;
+}
+.os-side .ss-row__title {
+  font-weight: 550;
+}
+.os-side .ss-row__subtitle {
+  color: var(--ss-text);
+}
+.os-side .ss-row__subtitle mark.todo {
+  font-size: 11px;
+}
+.os-side .ss-row[data-selected] {
+  background: rgb(0 0 0 / 0.065);
+}
+.os-side-link:hover .ss-row:not([data-selected]) {
+  background: rgb(0 0 0 / 0.03);
+}
+.os-side-icon {
+  color: var(--ss-icon);
+}
+.os-side .ss-row[data-selected] .os-side-icon {
+  color: var(--ss-accent);
+}
+/* the owner at the sidebar's foot, as a Mac app shows its account: who, where, and a way to write */
+.os-owner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 10px 6px 0 10px;
+  border-top: 1px solid rgb(0 0 0 / 0.06);
+}
+.os-owner .ss-avatar {
+  will-change: auto;
+}
+.os-owner-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.os-owner-name {
+  font-size: 13px;
+  line-height: 17px;
+  font-weight: 550;
+}
+.os-owner-place {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ss-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.os-owner-mail {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--os-glass);
+  box-shadow: var(--os-btn-shadow);
+  color: var(--ss-icon);
+  transition: color 0.15s;
+}
+.os-owner-mail:hover {
+  color: var(--ss-text-strong);
+}
+
+/* ---- toolbar: glass buttons with their labels under them ---- */
+
+.os-window .ss-window__main > .ss-window__bar {
+  padding-inline: 14px 16px;
+}
+.os-lead,
+.os-tools {
+  display: flex;
+  align-items: flex-start;
+}
+.os-lead {
+  gap: 14px;
+  min-width: 0;
+}
+.os-tools {
+  gap: 10px;
+}
+.os-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.os-tool-label {
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--ss-text);
+  white-space: nowrap;
+}
+/* a disabled tool dims its label with its glyph, as macOS does */
+.os-tool:has(> [aria-disabled]) .os-tool-label {
+  color: var(--ss-text-faint);
+}
+.os-cap,
+.os-round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--os-glass);
+  box-shadow: var(--os-btn-shadow);
+  color: var(--ss-icon);
+}
+.os-round {
+  width: 32px;
+  transition: color 0.15s;
+}
+a.os-round:hover {
+  color: var(--ss-text-strong);
+}
+.os-round[aria-disabled] {
+  color: var(--ss-icon-faint);
+}
+.os-nav {
+  padding: 0 3px;
+}
+.os-nav-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 32px;
+  border-radius: 16px;
+  transition: color 0.15s;
+}
+a.os-nav-btn:hover {
+  color: var(--ss-text-strong);
+}
+.os-nav-btn[aria-disabled] {
+  color: var(--ss-icon-faint);
+}
+.os-nav-btn:focus-visible,
+.os-round:focus-visible {
+  outline-offset: -2px;
+}
+.os-nav-rule {
+  width: 1px;
+  height: 16px;
+  background: rgb(0 0 0 / 0.1);
+}
+.os-window .os-heading {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ the page: one role */
+
+.os-body {
+  overflow: hidden;
+}
+.os-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.18) transparent;
+  animation: os-page-in 0.22s var(--ease) both;
+}
+/* a page swap inside one window: the body alone crossfades with a short rise */
+@keyframes os-page-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+.os-doc {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 18px 36px 44px;
+  user-select: text;
+}
+
+.os-head {
+  display: grid;
+  gap: 6px;
+}
+.os-title {
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.os-meta {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ss-text);
+}
+.os-meta mark.todo {
+  font-size: 12px;
+}
+.os-summary {
+  max-width: 34em;
+  margin-top: 8px;
+  font-size: 20px;
+  line-height: 28px;
+  letter-spacing: -0.014em;
+  color: var(--os-body);
+  text-wrap: pretty;
+}
+
+/* the numbers: one big, the rest as one ruled column beside it, on one quiet card */
+.os-nums {
+  display: grid;
+  /* the big number sizes its own column, never into its rows */
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
+  align-items: start;
+  gap: 10px 40px;
+  padding: 18px 24px;
+  border-radius: 18px;
+  background: #f6f5f3;
+}
+.os-nums .nums-hero {
+  display: grid;
+  gap: 4px;
+  padding-top: 4px;
+}
+.os-nums .nums-value {
+  font-size: 44px;
+  line-height: 48px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.os-nums .nums-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ss-text);
+}
+.os-nums .nums-rows {
+  list-style: none;
+}
+.os-nums .nums-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid rgb(0 0 0 / 0.07);
+}
+.os-nums .nums-row:first-child {
+  border-top: 0;
+}
+.os-nums .nums-row-value {
+  flex: none;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.os-nums .nums-row-label {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ss-text);
+}
+
+.os-shots .shot-frame {
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.07),
+    0 14px 32px -18px rgb(20 20 40 / 0.4);
+}
+.os-shots .shot-browser.ss-window {
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.08),
+    0 16px 36px -18px rgb(20 20 40 / 0.42);
+}
+.os-summary-todo {
+  max-width: 40em;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.os-story {
+  max-width: 40em;
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--os-body);
+}
+.os-story h3 {
+  margin-top: 1.4em;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 650;
+}
+.os-story .todo-note {
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.os-links .link-pill {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-ink-2);
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ss-text-strong);
+  transition: background 0.2s;
+}
+.os-links a.link-pill:hover {
+  background: var(--ss-ink-4);
+}
+
+/* the smallest windows (a 960 design): the big number a size down, still beside its rows */
+@container (max-width: 680px) {
+  .os-nums .nums-value {
+    font-size: 36px;
+    line-height: 40px;
+  }
+  .os-nums {
+    column-gap: 28px;
+  }
+}
+/* only a window narrower than any design size stacks the big number over its rows */
+@container (max-width: 520px) {
+  .os-nums {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { chapterHref, objectHref } from "../routes";
 import type { ObjectId } from "../scene-contract";
+import { imageSize } from "./image-size";
 import { getBooks, getComputerApps, getGlobePlaces, getLetterPage, getObjects, getPhoneApps, getShelfItems, getShelfMeta, getSite, getWindowPage } from "./load";
 import type { ContentImage, ContentLink, Metric, ShelfId, Site } from "./schemas";
 
@@ -39,6 +40,12 @@ export interface SceneShelf {
   items: { slug: string; section: Exclude<ShelfId, "books">; title: string; spine: string; role: string; href: string }[];
 }
 
+/** A content image with its pixel size (read from the file), so the screens can lay it out before it loads. */
+export interface ScreenImage extends ContentImage {
+  width?: number;
+  height?: number;
+}
+
 /** Everything a screen app shows (the live desktop and phone UIs render it). */
 export interface ScreenApp {
   slug: string;
@@ -49,7 +56,7 @@ export interface ScreenApp {
   summary: string;
   metrics: Metric[];
   html: string;
-  images: ContentImage[];
+  images: ScreenImage[];
   links: ContentLink[];
   cta?: { label: string; href: string };
   href: string;
@@ -71,6 +78,8 @@ export interface SceneData {
   now: string;
   location: string;
   email: string;
+  /** The booking link (site.json), or its "TODO" placeholder. */
+  calUrl: string;
   socials: Site["socials"];
   objects: SceneObject[];
   books: SceneBook[];
@@ -92,6 +101,11 @@ function textOn(hex: string): string {
   const n = Number.parseInt(hex.slice(1), 16);
   const luminance = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   return luminance > 0.6 ? "#1E1B16" : "#F4EEE3";
+}
+
+/** Screen images carry their size, so the live UIs reserve the right box before the file loads. */
+function sized(images: ContentImage[]): ScreenImage[] {
+  return images.map((image) => ({ ...image, ...(imageSize(path.join(process.cwd(), "public", image.src)) ?? {}) }));
 }
 
 
@@ -119,6 +133,7 @@ export function getSceneData(): SceneData {
     now: site.now,
     location: site.location,
     email: site.email,
+    calUrl: site.calUrl,
     socials: site.socials,
     objects: getObjects().map((o) => ({ ...o, href: objectHref(o.id) })),
     books: books.map((b, i) => {
@@ -165,7 +180,7 @@ export function getSceneData(): SceneData {
       summary: app.data.summary,
       metrics: app.data.metrics,
       html: app.html,
-      images: app.data.images,
+      images: sized(app.data.images),
       links: app.data.links,
       href: chapterHref("computer", app.slug),
     })),
@@ -176,7 +191,7 @@ export function getSceneData(): SceneData {
       summary: app.data.summary,
       metrics: app.data.metrics,
       html: app.html,
-      images: app.data.images,
+      images: sized(app.data.images),
       links: app.data.links,
       ...(app.data.cta ? { cta: app.data.cta } : {}),
       href: chapterHref("phone", app.slug),

@@ -1,0 +1,412 @@
+/* ÖmerOS, compact: the computer opened full-screen on a phone (design size = the viewport, about
+   390 × 844, zoom 1). An iOS navigation stack in iOS proportions: 17pt body, large titles, inset
+   cards on the grouped gray, glass buttons, a push from the right. The top 56px are left clear for
+   the site's 3D/Text switch (LAYOUT.topInset); the bar under it holds back and close. */
+
+.osc {
+  --osc-top: 56px;
+  --osc-bar: 44px;
+  --osc-bg: #f2f2f7;
+  --osc-secondary: rgb(60 60 67 / 0.6);
+  --osc-sep: rgb(60 60 67 / 0.18);
+  --osc-push: cubic-bezier(0.3, 0.75, 0.1, 1);
+  --osc-side: max(16px, env(safe-area-inset-left));
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--osc-bg);
+  color: #000;
+  font-family: var(--ss-font);
+  font-size: 17px;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ------------------------------------------------------------------ the stack */
+
+.osc-view {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: calc(var(--osc-top) + var(--osc-bar) + 6px) var(--osc-side) calc(28px + env(safe-area-inset-bottom));
+  background: var(--osc-bg);
+  transition: transform 0.5s var(--osc-push), visibility 0s;
+}
+.osc-view::-webkit-scrollbar {
+  display: none;
+}
+/* on a box wider than a phone (the monitor across the room), the column keeps a phone's measure */
+.osc-view > * {
+  max-width: 560px;
+  margin-inline: auto;
+}
+.osc-page {
+  transform: translateX(100%);
+  visibility: hidden;
+  box-shadow: -10px 0 30px rgb(0 0 0 / 0.07);
+  transition: transform 0.5s var(--osc-push), visibility 0s 0.5s;
+}
+.osc[data-depth="1"] .osc-page {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.5s var(--osc-push), visibility 0s;
+}
+.osc[data-depth="1"] .osc-list {
+  transform: translateX(-30%);
+  visibility: hidden;
+  transition: transform 0.5s var(--osc-push), visibility 0s 0.5s;
+}
+
+/* the bar: clear space for the switch, then back and close; content fades out under it */
+.osc-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  /* ends where the content starts, so nothing at rest sits under the fade */
+  height: calc(var(--osc-top) + var(--osc-bar) + 6px);
+  background: linear-gradient(var(--osc-bg) calc(100% - 14px), rgb(242 242 247 / 0));
+  pointer-events: none;
+}
+.osc-glass {
+  position: absolute;
+  top: var(--osc-top);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.06),
+    0 2px 10px rgb(0 0 0 / 0.07);
+  color: #1c1c1e;
+  pointer-events: auto;
+}
+.osc-glass:active {
+  background: #e5e5ea;
+}
+/* on a box wider than a phone the controls keep to the content's column (560 wide, centred) */
+.osc-back {
+  left: max(var(--osc-side), calc(50% - 280px));
+  animation: osc-fade 0.3s ease both;
+}
+.osc-close {
+  right: max(16px, env(safe-area-inset-right), calc(50% - 280px));
+}
+@keyframes osc-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ the list of roles */
+
+.osc-large {
+  padding: 0 4px 16px;
+}
+.osc-large-title {
+  font-size: 34px;
+  line-height: 41px;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+}
+.osc-large-sub {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+}
+.osc-cards {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.osc-card {
+  display: grid;
+  gap: 3px;
+  padding: 16px 14px 18px 18px;
+  border-radius: 22px;
+  background: #fff;
+  color: inherit;
+  transition: background 0.15s;
+}
+.osc-card:active {
+  background: #e9e9ee;
+}
+.osc-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.osc-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+}
+.osc-chevron {
+  flex: none;
+  color: #c4c4c7;
+}
+.osc-card-meta {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+}
+.osc-card-meta mark.todo,
+.osc-card-summary mark.todo {
+  font-size: 13px;
+}
+.osc-card-num {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  margin-top: 12px;
+}
+.osc-card-value {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  font-variant-numeric: tabular-nums;
+}
+.osc-card-label {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+}
+.osc-card-summary {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 20px;
+  color: #3a3a3c;
+}
+
+/* ------------------------------------------------------------------ one role */
+
+.osc-role {
+  display: grid;
+  gap: 22px;
+}
+.osc-role-head {
+  display: grid;
+  gap: 6px;
+  padding: 0 4px;
+}
+.osc-role-title {
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+.osc-role-meta {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+}
+.osc-role-meta mark.todo {
+  font-size: 13px;
+}
+.osc-role-summary {
+  margin-top: 8px;
+  font-size: 17px;
+  line-height: 24px;
+  color: #1c1c1e;
+  text-wrap: pretty;
+}
+.osc-summary-todo {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+/* the numbers card: the big one on top, the rest as an inset list under it */
+.osc-nums {
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+}
+.osc-nums .nums-hero {
+  display: grid;
+  gap: 2px;
+  padding: 18px 18px 16px;
+}
+.osc-nums .nums-value {
+  font-size: 44px;
+  line-height: 48px;
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  font-variant-numeric: tabular-nums;
+}
+.osc-nums .nums-label {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+}
+.osc-nums .nums-rows {
+  list-style: none;
+  margin-left: 18px;
+}
+.osc-nums .nums-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 18px 12px 0;
+  border-top: 0.5px solid var(--osc-sep);
+}
+.osc-nums .nums-row-value {
+  flex: none;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.osc-nums .nums-row-label {
+  font-size: 17px;
+  line-height: 22px;
+  color: var(--osc-secondary);
+}
+
+.osc-shots .shot-frame {
+  border-radius: 18px;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08);
+}
+.osc-shots-slot {
+  min-height: 168px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: none;
+}
+.osc-shots-slot p {
+  font-size: 15px;
+  line-height: 20px;
+}
+.osc-shots-slot mark.todo {
+  font-size: 14px;
+}
+.osc-shots figcaption {
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--osc-secondary);
+}
+
+.osc-story {
+  padding: 0 4px;
+  font-size: 17px;
+  line-height: 25px;
+  color: #1c1c1e;
+}
+.osc-story h3 {
+  margin-top: 1.2em;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.osc-story .todo-note {
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.osc-site {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  border-radius: 26px;
+  background: var(--ss-accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+}
+.osc-site:active {
+  background: color-mix(in srgb, var(--ss-accent), #000 12%);
+}
+.osc-links .link-pill {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--ss-radius-pill);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 550;
+}
+
+/* the other roles, at the end of a page: an inset grouped list on to the next */
+.osc-more {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+.osc-more-title {
+  padding: 0 16px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--osc-secondary);
+}
+.osc-more-list {
+  list-style: none;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+}
+.osc-more-list > li + li {
+  position: relative;
+}
+.osc-more-list > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--osc-sep);
+}
+.osc-more-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 14px 10px 16px;
+  color: inherit;
+  transition: background 0.15s;
+}
+.osc-more-row:active {
+  background: #e5e5ea;
+}
+.osc-more-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.osc-more-name {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 550;
+}
+.osc-more-role {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--osc-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.osc-more-role mark.todo {
+  font-size: 13px;
+}
