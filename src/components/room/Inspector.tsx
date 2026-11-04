@@ -275,13 +275,16 @@ export function Inspector() {
       if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
       canvas.style.cursor = "";
       const id = useRoom.getState().holding;
-      const h = id ? held.get(id) : undefined;
-      if (!h || drag.moved >= 6) return;
-      // a click: on the thing, nothing; anywhere else, put it back (to its section)
-      const rect = canvas.getBoundingClientRect();
-      ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(ndc, camera);
-      if (raycaster.intersectObject(h.node, true).length) return;
+      if (!id || drag.moved >= 6) return;
+      // a click: on the thing, nothing; anywhere else, put it back (to its section). (A click
+      // before its first frame in your hand can't be on it yet.)
+      const h = held.get(id);
+      if (h) {
+        const rect = canvas.getBoundingClientRect();
+        ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+        raycaster.setFromCamera(ndc, camera);
+        if (raycaster.intersectObject(h.node, true).length) return;
+      }
       const back = document.querySelector<HTMLAnchorElement>(".cap-live [data-back]")?.getAttribute("href") ?? "/shelf";
       useRoom.getState().navigate(back);
     };
