@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { holding, objectCenter, sceneReady } from "./helpers";
+import { holding, itemCenter, objectCenter, sceneReady } from "./helpers";
 
 test("overview: the 3D room loads, the loader steps aside, the switch is the only UI", async ({ page }) => {
   const errors: string[] = [];
@@ -70,6 +70,30 @@ test("a book comes off the shelf into your hand; clicking outside puts it back",
   else await page.mouse.click(40, viewport.height - 40);
   await expect(page).toHaveURL(/\/shelf\/books$/);
   await expect.poll(() => holding(page)).toBeNull();
+});
+
+test("clicking a medal on the shelf picks up that medal", async ({ page, isMobile }) => {
+  await page.goto("/shelf/olympiad?test=1");
+  await sceneReady(page);
+  const medal = await itemCenter(page, "medal_bronze_1");
+  if (isMobile) await page.touchscreen.tap(medal.x, medal.y);
+  else await page.mouse.click(medal.x, medal.y);
+  await expect(page).toHaveURL(/\/shelf\/economics-olympiad$/);
+  await expect.poll(() => holding(page)).toBe("medal_bronze_1");
+  await expect(page.getByTestId("caption-item").getByRole("heading", { level: 1, name: "Economics Olympiad" })).toBeVisible();
+});
+
+test("a deep link to a shelf item puts its hero in your hand", async ({ page }) => {
+  await page.goto("/shelf/mundp?test=1");
+  await sceneReady(page);
+  await expect.poll(() => holding(page)).toBe("placard");
+});
+
+test("the mailbox opens when you come to it", async ({ page }) => {
+  await page.goto("/contact?test=1");
+  await sceneReady(page);
+  await expect(page.getByTestId("caption-contact")).toBeVisible();
+  await expect(page.getByTestId("caption-contact").getByRole("heading", { level: 1 })).toHaveText("Say hi");
 });
 
 test("Esc puts what you're holding back, then steps out shelf by shelf", async ({ page, isMobile }) => {
