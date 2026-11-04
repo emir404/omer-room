@@ -25,7 +25,8 @@ HOOP_BOARD = (-1.55, 2.25, 2.32)
 HOOP_RIM = (-1.55, 2.0, 2.14)
 BALL = (-1.3, 0.98, 0.12)
 BALL_R = 0.12
-SHELF = (-2.08, 1.25, 0.0)
+SHELF_SPAN = (0.42, 2.04)  # the bookcase along the left wall (y), 0.34 deep, 2.115 tall
+SHELF = (-2.08, (SHELF_SPAN[0] + SHELF_SPAN[1]) / 2, 0.0)
 DOOR = {"y": -1.05, "w": 0.92, "h": 2.08}
 MAILBOX = (-2.25, -1.9, 1.2)
 CHAIR = (0.45, 1.2, 0.0)
@@ -35,7 +36,7 @@ PLANT = (1.85, 1.85, 0.0)
 # Site camera presets: (position, target). The site keeps the direction and computes the distance.
 CAMS = {
     "room": ((5.6, -6.0, 4.3), (-0.25, 0.45, 1.05)),
-    "shelf": ((1.2, -0.3, 1.35), (-2.0, 1.25, 1.07)),
+    "shelf": ((1.621, -0.257, 1.567), (-2.06, 1.23, 1.08)),  # 3/4 (22°) from the door side, 7° above the case's middle
     "computer": ((0.5, 0.7, 1.15), (0.5, 1.98, 1.085)),
     "phone": ((1.0, 1.2, 1.4), (1.02, 1.74, 0.88)),
     "globe": ((0.15, 0.95, 1.25), (0.02, 1.86, 1.0)),

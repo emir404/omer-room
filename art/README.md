@@ -21,13 +21,15 @@ pnpm art                 # everything: sources → views → textures → room �
 pnpm art views           # the window photo + globe map → art/out/views (art/blender/views.py)
 pnpm art room            # rebuild art/out/room.blend after editing a prop
 pnpm art preview -- day room,computer,shelf 128   # Cycles renders from the site's cameras → art/previews/
+pnpm art preview -- day sec_school,sec_olympiad,sec_mun,sec_books 64   # the shelf's sections, from their anchors
 pnpm art bake -- 128 2048 1024                    # quick bake (samples, props px, room px)
-pnpm art bake            # final quality (1024 spp)
+pnpm art bake            # final quality (384 spp)
 pnpm art export && pnpm assets
 pnpm scene:check && pnpm budget:check
 ```
 
 Single prop under studio light: `Blender -b --factory-startup -P art/blender/preview_prop.py -- shelf 64`.
+Shelf items as you'd hold them (straight on, 3/4, back): `… preview_prop.py -- shelf 64 item=medal_gold,book_06`.
 
 ## Files (`art/blender/`)
 
@@ -40,6 +42,7 @@ Single prop under studio light: `Blender -b --factory-startup -P art/blender/pre
 | `lib/plants.py` | leaves (heart, lance, monstera with slits) and vines |
 | `lib/lights.py` | day / night light rigs (previews and bakes share them) |
 | `props/*.py` | one module per area: shell, window, desk, computer, desk_objects, shelf, walldecor, door, floor, extras |
+| `lib/shelf_kit.py` | the library's builders: books (cover shell + cover plane + pages), binders, medals in relief, ribbons, frames, stands |
 | `textures.py` | procedural albedo textures (floor, kilim, ball, posters, cork) |
 | `views.py` | the window view (a pinhole crop of the panorama: yaw, pitch, fov at the top of the file) and the globe map (relief + graticule, 4096×2048) |
 | `og_image.py` | the social preview still; uses `scripts/capture-screens.ts` shots of the live screens |
@@ -52,11 +55,22 @@ Single prop under studio light: `Blender -b --factory-startup -P art/blender/pre
 
 ## Tags → contract names
 
-Props tag objects (`own`, `contract`, `pivot`, `bake`, `glow`, `dynamic`, `shadow`) instead of
-naming them. `own="shelf"` → merged into `part__shelf__NN` under `obj__shelf`; `own="decor:lamp"` →
-`decor__lamp[__NN]`; `contract="slot__book__03"` keeps that exact name and its transform (slots,
-screens, displays, hits, pivots, labels, anchors). `bake="none"` = not lightmapped (emissive or
-moving); `dynamic=True` = realtime-lit at runtime (globe, ball).
+Props tag objects (`own`, `contract`, `pivot`, `item`, `bake`, `glow`, `dynamic`, `shadow`, `lm`)
+instead of naming them. `own="shelf"` → merged into `part__shelf__NN` under `obj__shelf`;
+`own="decor:lamp"` → `decor__lamp[__NN]`; `contract="slot__book__03"` keeps that exact name and its
+transform (slots, screens, displays, hits, pivots, labels, anchors). `bake="none"` = not lightmapped
+(emissive or moving); `dynamic=True` = realtime-lit at runtime (globe, ball); `lm=0.3` = lightmap
+density for that mesh.
+
+**Items** (`with lib.core.item("medal_gold", frame, "olympiad"):`) are the shelf things you can pick
+up. Their meshes merge per material under an empty `item__<id>` at the item's middle, oriented by
+`frame` (+X out of the face you'd show someone, +Z up), named `item__<id>__NN`; their slot planes
+keep their names under it. Model them closed on every side: items are never contact-culled, and
+nothing is culled for touching them (lifting one shows what it stood on). Their hidden faces (a
+book's boards between its neighbors, every bottom) get 15% lightmap density instead. Extras that
+reach the glTF: `section`/`faceout` on items, `section` on `slot__label__NN`, `w`/`h` on
+`anchor__section_<id>`, `open` on `pivot__contact_door`. Items keep their normals in the GLB
+(`scripts/build-assets.ts`): they're realtime-lit in your hand.
 
 ## Lighting at runtime (`src/components/room/RoomMaterial.ts`)
 
@@ -75,8 +89,12 @@ still sit in the baked light. Metals bake as diffuse and get a cube-map sheen sc
   size), so the frame fits the real letter 1:1. Re-run `pnpm art` after adding or replacing it.
 - The screens: `layout.SCREEN` (16:10) and `layout.PHONE_SCREEN` (iPhone, 402 × 874 pt) match the live
   DOM UIs' design sizes — change both together.
-- Slots: `slot__book__NN` (spines), `slot__binder__NN` (the four chapter binders), `slot__cover__01`
-  (the face-out book), `slot__photo__NN`. Their front faces span UV 0..1; the site paints them.
+- Slots: `slot__book__NN` (each book's cover shell: the spine spans UV 0..1, the boards sit on the
+  corner texel), `slot__cover__NN` (the same book's front cover), `slot__binder__NN` (the school
+  binders' spine labels), `slot__photo__01..04` (MUN frames, the certificate), `slot__page__01` (the
+  research paper's title page), `slot__label__01..04` (the section plates). Their front faces span
+  UV 0..1 and carry `aspect`; the site paints them. Books are numbered in reading order (top to
+  bottom, left to right; a stack top to bottom).
 
 ## Changing things
 

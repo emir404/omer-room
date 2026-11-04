@@ -97,7 +97,7 @@ def posters():
     # back wall, right of the window: the money poster
     for name, tex, loc, rot, size in (
         ("poster_money", "poster_money", (1.86, BACK_Y, 1.78), (0, 0, 0), (0.4, 0.55)),
-        ("poster_kozan", "poster_kozan", (LEFT_X, 0.06, 1.6), (0, 0, 90), (0.42, 0.578)),
+        ("poster_kozan", "poster_kozan", (LEFT_X, -0.03, 1.6), (0, 0, 90), (0.42, 0.578)),  # between the door and the bookcase
     ):
         R = Matrix.Rotation(rot[2] * DEG, 4, "Z")
         w, h = size

@@ -2,7 +2,7 @@
  * `pnpm assets` — turns the Blender output (art/out) into what the site loads (public/3d):
  *
  *   art/out/room.glb             → public/3d/room.<hash>.glb   (dedup → prune(keepLeaves) → WebP ≤1K →
- *                                                                 meshopt, 14-bit positions + UVs)
+ *                                                                 meshopt + filters, 14-bit positions + UVs)
  *   art/out/lightmaps/*_<px>.png → public/3d/lm/<name>.<hash>.ktx2 (UASTC + Zstandard, mipmaps)
  *   art/out/views/*.png          → public/3d/views/<name>.<tier>.<hash>.webp (window photo, globe map)
  *   + src/lib/assets.manifest.json (URLs, tiers, lightmap scales) — read by src/lib/assets.ts
@@ -16,7 +16,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { type Document, NodeIO, type Primitive } from "@gltf-transform/core";
+import { type Document, type Node, NodeIO, type Primitive, type vec3, type vec4 } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { dedup, meshopt, prune, textureCompress, weld } from "@gltf-transform/functions";
 import { MeshoptDecoder, MeshoptEncoder } from "meshoptimizer";
@@ -48,23 +48,31 @@ interface BakeManifest {
 /**
  * Baked meshes are drawn with an unlit shader (albedo × lightmap), so they don't need normals; and
  * untextured ones don't need UV0 (it's a copy of UV1). Metals keep normals for their reflections,
- * dynamic (realtime-lit) meshes keep everything. Dropping these lets weld() merge the vertices
- * that only existed because of normal splits.
+ * dynamic (realtime-lit) meshes keep everything, and so does everything under an item__ empty (a
+ * shelf item is realtime-lit while it's in your hand). Dropping these lets weld() merge the
+ * vertices that only existed because of normal splits.
  */
 function stripUnusedAttributes(doc: Document) {
   let normals = 0;
   let uvs = 0;
+  const parentOf = new Map<Node, Node>();
+  for (const node of doc.getRoot().listNodes()) for (const child of node.listChildren()) parentOf.set(child, node);
+  const inItem = (node: Node) => {
+    for (let p = parentOf.get(node); p; p = parentOf.get(p)) if (p.getName().startsWith("item__")) return true;
+    return false;
+  };
   for (const node of doc.getRoot().listNodes()) {
     const mesh = node.getMesh();
     if (!mesh) continue;
     const extras = node.getExtras() as { bake?: string; dynamic?: boolean };
     const name = node.getName();
     const keepUV0 = /^(slot|screen|display)__/.test(name);
+    const held = inItem(node);
     for (const prim of mesh.listPrimitives() as Primitive[]) {
       const material = prim.getMaterial();
       const metal = (material?.getMetallicFactor() ?? 0) > 0.5;
       const textured = Boolean(material?.getBaseColorTexture());
-      if (extras.bake && !extras.dynamic && !metal && prim.getAttribute("NORMAL")) {
+      if (extras.bake && !extras.dynamic && !metal && !held && prim.getAttribute("NORMAL")) {
         prim.setAttribute("NORMAL", null);
         normals++;
       }
@@ -75,6 +83,26 @@ function stripUnusedAttributes(doc: Document) {
     }
   }
   console.log(`  dropped NORMAL on ${normals} and TEXCOORD_0 on ${uvs} primitives`);
+}
+
+/**
+ * The GLB's JSON isn't compressed and it's ~20% of the file (one node, mesh, accessors and buffer
+ * views per mesh). Node transforms and material factors don't need 17 digits: 8 significant digits
+ * is < 0.1 µm on a 4.5 m room, and colors need 6.
+ */
+function roundJsonNumbers(doc: Document) {
+  const r = (digits: number) => (v: number) => Number(v.toPrecision(digits));
+  for (const node of doc.getRoot().listNodes()) {
+    node.setTranslation(node.getTranslation().map(r(8)) as vec3);
+    node.setRotation(node.getRotation().map(r(8)) as vec4);
+    node.setScale(node.getScale().map(r(8)) as vec3);
+  }
+  for (const material of doc.getRoot().listMaterials()) {
+    material.setBaseColorFactor(material.getBaseColorFactor().map(r(6)) as vec4);
+    material.setEmissiveFactor(material.getEmissiveFactor().map(r(6)) as vec3);
+    material.setRoughnessFactor(r(6)(material.getRoughnessFactor()));
+    material.setMetallicFactor(r(6)(material.getMetallicFactor()));
+  }
 }
 
 async function buildRoom(): Promise<string> {
@@ -92,8 +120,10 @@ async function buildRoom(): Promise<string> {
     textureCompress({ encoder: sharp, targetFormat: "webp", quality: 88, resize: [1024, 1024] }),
     // the cork board is small on screen and its noise compresses badly
     textureCompress({ encoder: sharp, targetFormat: "webp", quality: 82, resize: [256, 256], pattern: /cork/ }),
-    meshopt({ encoder: MeshoptEncoder, level: "medium", quantizePosition: 14, quantizeTexcoord: 14, quantizeNormal: 10 }),
+    // "high" adds meshopt's filters (octahedral normals…): ~9% smaller, decoded by three's MeshoptDecoder
+    meshopt({ encoder: MeshoptEncoder, level: "high", quantizePosition: 14, quantizeTexcoord: 14, quantizeNormal: 10 }),
   );
+  roundJsonNumbers(doc);
   const glb = Buffer.from(await io.writeBinary(doc));
   const name = `room.${hash(glb)}.glb`;
   fs.writeFileSync(path.join(PUB, name), glb);
