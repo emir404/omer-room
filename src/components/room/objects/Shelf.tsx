@@ -94,6 +94,13 @@ export function Shelf({ books, shelf, photos }: { books: SceneBook[]; shelf: Sce
       tagItem(node, entry ? { key: `item:${id}`, label: entry.label, href: entry.href } : undefined);
       // an empty book spot or binder isn't on the shelf at all
       if (map.books.has(id)) node.visible = Boolean(map.books.get(id));
+      // a spine-out book's front cover is pressed against its neighbor: don't draw it until it's
+      // in your hand (the Inspector shows it) — 21 fewer draw calls
+      if (map.books.has(id) && !node.userData.faceout) {
+        node.traverse((child) => {
+          if (child.name.startsWith("slot__cover__")) child.visible = false;
+        });
+      }
       if (map.binders.has(id)) node.visible = Boolean(map.binders.get(id));
     }
     for (const plate of index.slots.label) {

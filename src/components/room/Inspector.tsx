@@ -190,8 +190,12 @@ export function Inspector() {
         entry.studio.color.copy((room as MeshBasicMaterial).color);
         entry.studio.needsUpdate = true;
         entry.mesh.material = entry.studio;
+        // faces the shelf hides (a spine-out book's front cover) show once it's in your hand
+        entry.mesh.userData.restVisible = entry.mesh.visible;
+        entry.mesh.visible = true;
       } else {
         entry.mesh.material = entry.room;
+        if (entry.mesh.userData.restVisible !== undefined) entry.mesh.visible = entry.mesh.userData.restVisible as boolean;
       }
     }
   };

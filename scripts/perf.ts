@@ -87,6 +87,7 @@ const rows: [string, Awaited<ReturnType<typeof sample>>][] = [];
 rows.push(["overview, idle", await sample(page, 2000)]);
 const go = (href: string) => page.evaluate((h) => (window as unknown as { __roomTest: { navigate(h: string): void } }).__roomTest.navigate(h), href);
 rows.push(["fly to the shelf", await sample(page, 1800, () => go("/shelf"))]);
+await page.waitForTimeout(2000); // let the camera settle
 rows.push(["at the shelf, idle", await sample(page, 1500)]);
 rows.push([
   "pick up a book",
@@ -106,6 +107,7 @@ rows.push([
 ]);
 rows.push(["holding it, idle", await sample(page, 1500)]);
 rows.push(["fly to the computer", await sample(page, 2000, () => go("/computer"))]);
+await page.waitForTimeout(2000);
 rows.push(["at the computer, idle", await sample(page, 1500)]);
 
 const kb = (n = 0) => `${(n / 1024).toFixed(0)} KB`;
