@@ -1,7 +1,9 @@
 """Render the assembled room from the site's cameras: Blender -b -P preview_room.py -- [day|night] [cams] [samples] [width]
 
-Writes art/previews/room_<cam>_<time>.png. The overview camera mimics the site's framing
-(CameraRig: preset direction, distance fitted to the room)."""
+Writes art/previews/room_<cam>_<time>.png. Cameras frame like the site does (CameraRig: preset
+direction, distance fitted to the free viewport, the panel's focal offset as a lens shift).
+sec_<id> (sec_school, sec_olympiad, sec_mun, sec_books) frames a shelf section's opening from its
+anchor__section_<id> (extras w, h)."""
 
 import math
 import os
@@ -76,16 +78,70 @@ else:
     lights.night(uniq)
     scene.view_settings.exposure = 1.2
 
-for cid in cams:
-    pos, target = CAMS[cid]
-    pos, target = Vector(pos), Vector(target)
+VFOV = math.radians(32)
+TOP_INSET, PANEL = 56, min(440, round(width * 0.36)) + 24  # src/lib/layout.ts (desktop: the panel on the right)
+
+
+def usable(panel=True):
+    """The site's free viewport (CameraRig.computePose): vertical and horizontal FOV left by the UI."""
+    hfov = 2 * math.atan(math.tan(VFOV / 2) * width / height)
+    v = 2 * math.atan(math.tan(VFOV / 2) * (height - TOP_INSET) / height)
+    h = 2 * math.atan(math.tan(hfov / 2) * (width - (PANEL if panel else 0)) / width)
+    return v, h
+
+
+def bounds(objs):
+    pts = [o.matrix_world @ Vector(c) for o in objs for c in o.bound_box]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    return lo, hi
+
+
+def subtree(name):
+    root = bpy.data.objects.get(name)
+    out, stack = [], list(root.children) if root else []
+    while stack:
+        o = stack.pop()
+        stack += list(o.children)
+        if o.type == "MESH" and not o.name.startswith("hit__"):
+            out.append(o)
+    return out
+
+
+def site_camera(cid):
+    """Where the site puts the camera (direction from the preset, distance fitted to the free
+    viewport, focal offset → lens shift). sec_<id> frames a shelf section's opening from its anchor."""
+    if cid.startswith("sec_"):
+        anchor = bpy.data.objects[f"anchor__section_{cid[4:]}"]
+        target = anchor.matrix_world.translation.copy()
+        w, h = float(anchor["w"]), float(anchor["h"])
+        az, el = math.radians(16), math.radians(7)
+        direction = Vector((math.cos(az) * math.cos(el), -math.sin(az) * math.cos(el), math.sin(el)))
+        v, hz = usable()
+        dist = max((h / 2 * 1.14) / math.tan(v / 2), (w / 2 * 1.1) / math.tan(hz / 2)) + 0.17
+        return target + direction * dist, target, True
+    pos, target = (Vector(p) for p in CAMS[cid])
+    direction = (pos - target).normalized()
     if cid == "room":
         # CameraRig: distance = fit(roomSphere.radius * 0.74) for the usable vertical FOV
-        vfov = math.radians(32)
-        usable = 2 * math.atan(math.tan(vfov / 2) * (900 - 56) / 900)
-        dist = 3.63 * 0.74 / math.sin(usable / 2)
-        pos = target + (pos - target).normalized() * dist
+        v, _ = usable(panel=False)
+        return target + direction * (3.63 * 0.74 / math.sin(v / 2)), target, False
+    meshes = subtree(f"obj__{cid}")
+    if not meshes:
+        return pos, target, False
+    lo, hi = bounds(meshes)
+    radius = (hi - lo).length / 2
+    v, hz = usable()
+    dist = radius * 1.12 / math.sin(min(v, hz) / 2)
+    return target + direction * dist, target, True
+
+
+for cid in cams:
+    pos, target, panel = site_camera(cid)
     cam = render.camera(f"cam_{cid}", pos, target, fov=32)
+    if panel:  # the site re-centers the object in the space left of the panel
+        cam.data.shift_x = (PANEL / 2) / width
+        cam.data.shift_y = (TOP_INSET / 2) / width
     out = os.path.join(render.PREVIEWS, f"room_{cid}_{time}.png")
     render.render_to(out, cam)
     print("PREVIEW", out)

@@ -1,6 +1,6 @@
 """The door on the left wall (four raised panels, brass lever, hinges, casing, a doormat) and the
-mailbox beside it (obj__contact) with its flag (pivot__contact_flag), mail sticking out and the
-family name on the side."""
+mailbox beside it (obj__contact): its flag (pivot__contact_flag), a front door that drops open
+(pivot__contact_door, extras.open), mail inside and the family name on the side."""
 
 import math
 
@@ -52,12 +52,30 @@ def door():
     hi.matrix_world = Matrix.Translation((LEFT_X + 0.3, DOOR["y"], 0.0145)) @ Matrix.Rotation(90 * DEG, 4, "Z")
 
 
+def tunnel(W, wall_h, inset=0.0, n=16):
+    """The mailbox's (y, z) section: a rectangle under a half circle, `inset` smaller all round."""
+    r = W / 2 - inset
+    prof = [(-r, inset), (r, inset), (r, wall_h)]
+    prof += [(r * math.cos(math.pi * k / n), wall_h + r * math.sin(math.pi * k / n)) for k in range(1, n)]
+    return prof + [(-r, wall_h)]
+
+
+DOOR_OPEN = 100.0  # degrees about pivot__contact_door's local Z (Blender) = the exported node's local Y
+
+
 def mailbox():
+    """A tunnel mailbox on a wall shelf. Its front door hinges at the bottom: pivot__contact_door sits
+    on the hinge line with local Z along the hinge (+Y, Blender), so +100° about it drops the door
+    open; 0 is closed, as modeled. extras.open = that angle in radians, about the exported node's
+    local Y (Blender local Z → glTF local Y; the conversion keeps the sign). The door doesn't shadow
+    the bake, so the inside (an envelope, a rolled letter) is lit when it opens."""
     mx, my, mz = MAILBOX
-    L, W, wall_h = 0.44, 0.2, 0.13
-    x0 = LEFT_X + 0.03
-    # wall shelf + corbels
-    box("mail_shelf", (0.52, 0.27, 0.026), loc=(LEFT_X + 0.26, my, mz - 0.026), mat="oak", bevel=0.005, anchor=(0, 0, -1))
+    L, W, wall_h, t = 0.44, 0.2, 0.13, 0.0035
+    x0 = LEFT_X + 0.06
+    x1 = x0 + L
+    # wall shelf (its front edge just behind the door, so the door can swing past it) + corbels
+    sd = x1 - 0.008 - LEFT_X
+    box("mail_shelf", (sd, 0.27, 0.026), loc=(LEFT_X + sd / 2, my, mz - 0.026), mat="oak", bevel=0.005, anchor=(0, 0, -1))
     for s in (-1, 1):
         bm = bmesh.new()
         vs = [bm.verts.new(p) for p in ((LEFT_X, my + s * 0.09, mz - 0.026), (LEFT_X + 0.2, my + s * 0.09, mz - 0.026), (LEFT_X, my + s * 0.09, mz - 0.2))]
@@ -66,36 +84,49 @@ def mailbox():
         sol = cor.modifiers.new("t", "SOLIDIFY")
         sol.thickness = 0.022
         sol.offset = 0
-    # the tunnel body: rectangle + half circle, extruded along +X
-    prof = [(-W / 2, 0.0), (W / 2, 0.0), (W / 2, wall_h)]
-    for k in range(1, 16):
-        a = math.pi * k / 16
-        prof.append((W / 2 * math.cos(a), wall_h + W / 2 * math.sin(a)))
-    prof.append((-W / 2, wall_h))
+    # the body: a closed shell with a real inside (it shows when the door opens)
+    outer, inner = tunnel(W, wall_h), tunnel(W, wall_h, t)
+    n = len(outer)
     bm = bmesh.new()
-    back = [bm.verts.new((x0, my + y, mz + z)) for y, z in prof]
-    front = [bm.verts.new((x0 + L, my + y, mz + z)) for y, z in prof]
-    n = len(prof)
+    ob_ = [bm.verts.new((x0, my + y, mz + z)) for y, z in outer]
+    of = [bm.verts.new((x1, my + y, mz + z)) for y, z in outer]
+    ib = [bm.verts.new((x0 + t, my + y, mz + z)) for y, z in inner]
+    inf = [bm.verts.new((x1, my + y, mz + z)) for y, z in inner]
     for i in range(n):
-        bm.faces.new((back[i], back[(i + 1) % n], front[(i + 1) % n], front[i]))
-    bm.faces.new(list(reversed(back)))
+        j = (i + 1) % n
+        bm.faces.new((ob_[i], ob_[j], of[j], of[i]))  # outside
+        bm.faces.new((inf[i], inf[j], ib[j], ib[i]))  # inside
+        bm.faces.new((of[i], of[j], inf[j], inf[i]))  # the rim around the opening
+    bm.faces.new(list(reversed(ob_)))  # back
+    bm.faces.new(ib)  # the inside of the back
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    from_bm("mail_body", bm, "navy", bevel=0.004, seg=2, smooth_angle=25)
-    # front door, open a little, with mail poking out
+    from_bm("mail_body", bm, "navy", bevel=0.003, seg=2, smooth_angle=25)
+    for s in (-1, 1):  # hinge knuckles at the bottom of the opening
+        cyl(f"mail_hinge_{s}", 0.0042, 0.03, loc=(x1 + 0.004, my + s * 0.062, mz + 0.004), rot=(90, 0, 0), mat="steel", seg=10, bevel=0.001, anchor_bottom=False)
+    # the door, closed, under its pivot
+    pivot = empty("door_pivot", (x1 + 0.006, my, mz + 0.004), rot=(-90, 0, 0))
+    tag(pivot, contract="pivot__contact_door", own="contact", open=round(math.radians(DOOR_OPEN), 5))
+    face = [(y * 1.04, z * 1.03) for y, z in outer]
     bm = bmesh.new()
-    vs = [bm.verts.new((0.0, y * 1.04, z * 1.03)) for y, z in prof]
-    bm.faces.new(vs)
-    lid = from_bm("mail_door", bm, "navy", wn=False, smooth_angle=None)
-    sol = lid.modifiers.new("t", "SOLIDIFY")
-    sol.thickness = 0.012
-    lid.matrix_world = Matrix.Translation((x0 + L + 0.006, my, mz)) @ Matrix.Rotation(-14 * DEG, 4, "Y")
-    tab = box("mail_tab", (0.012, 0.03, 0.03), mat="steel", bevel=0.003)
-    tab.matrix_world = lid.matrix_world @ Matrix.Translation((0.012, 0, wall_h + W / 2 - 0.01))
-    for k, (dz, rot, col) in enumerate(((0.06, 4, "paper"), (0.1, -6, "paper_warm"))):
-        env = box(f"envelope_{k}", (0.2, 0.15, 0.003), mat=col, bevel=0.0008, seg=1)
-        env.matrix_world = Matrix.Translation((x0 + L - 0.02, my + (k - 0.5) * 0.02, mz + dz)) @ Matrix.Rotation(rot * DEG, 4, "X") @ Matrix.Rotation(-12 * DEG, 4, "Y")
-        stamp = box(f"stamp_{k}", (0.028, 0.034, 0.0012), mat="red" if k == 0 else "teal", bevel=0.0, seg=1)
-        stamp.matrix_world = env.matrix_world @ Matrix.Translation((0.07, 0.045, 0.002))
+    a = [bm.verts.new((x1 + 0.0005, my + y, mz + z)) for y, z in face]
+    b = [bm.verts.new((x1 + 0.0125, my + y, mz + z)) for y, z in face]
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((a[i], a[j], b[j], b[i]))
+    bm.faces.new(list(reversed(a)))
+    bm.faces.new(b)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    from_bm("mail_door", bm, "navy", bevel=0.003, seg=2, smooth_angle=25, pivot="contact_door", shadow=False)
+    top = mz + (wall_h + W / 2) * 1.03
+    box("mail_tab", (0.012, 0.034, 0.03), loc=(x1 + 0.0185, my, top - 0.012), mat="steel", bevel=0.003, pivot="contact_door", shadow=False)
+    # inside: an envelope on the floor and a rolled letter tied with twine
+    env = box("envelope", (0.21, 0.15, 0.004), loc=(x0 + 0.24, my - 0.004, mz + t), rot=(0, 0, 5), mat="paper_warm", bevel=0.0012, seg=1, anchor=(0, 0, -1))
+    _ = env
+    box("envelope_stamp", (0.03, 0.026, 0.0008), loc=(x0 + 0.315, my + 0.044, mz + t + 0.004), rot=(0, 0, 5), mat="red", bevel=0.0, seg=1, anchor=(0, 0, -1))
+    box("envelope_flap", (0.21, 0.004, 0.0006), loc=(x0 + 0.24, my - 0.03, mz + t + 0.004), rot=(0, 0, 5), mat="cream_dark", bevel=0.0, seg=1, anchor=(0, 0, -1))
+    roll = cyl("letter_roll", 0.017, 0.19, loc=(x0 + 0.2, my + 0.045, mz + t + 0.0175), rot=(0, 90, 8), mat="paper", seg=16, bevel=0.002, anchor_bottom=False)
+    _ = roll
+    torus("letter_tie", 0.0178, 0.0016, loc=(x0 + 0.2, my + 0.045, mz + t + 0.0175), rot=(0, 90, 8), mat="twine", seg=16, ring=4)
     # the family name on the camera-facing side
     side_y = my - W / 2 - 0.0015
     name = text("mail_name", "ÖZTOK", 0.036, mat="cream", extrude=0.0012, spacing=1.12)

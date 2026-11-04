@@ -115,10 +115,10 @@ def wainscot_run(prefix, axis, a0, a1, wall_face, own):
 
 
 def wainscot():
-    from layout import SHELF
+    from layout import SHELF_SPAN
 
     dy0, dy1 = DOOR["y"] - DOOR["w"] / 2 - 0.078, DOOR["y"] + DOOR["w"] / 2 + 0.078
-    shelf_y0, shelf_y1 = SHELF[1] - 0.65, SHELF[1] + 0.65  # the bookcase stands against bare wall
+    shelf_y0, shelf_y1 = SHELF_SPAN[0] + 0.01, SHELF_SPAN[1] - 0.01  # the bookcase stands against bare wall
     wainscot_run("wain_back", "x", LEFT_X, HALF, BACK_Y, "decor:wainscot")
     wainscot_run("wain_left_b", "y", shelf_y1, BACK_Y, LEFT_X, "decor:wainscot")
     wainscot_run("wain_left_m", "y", dy1, shelf_y0, LEFT_X, "decor:wainscot")

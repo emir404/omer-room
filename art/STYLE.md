@@ -15,6 +15,7 @@ map. Only the LED ticker on the desk is dot-matrix, because that's what LED tick
 | Diorama cut faces | `wall_cut` / `floor_edge` | `#4A3A30` / `#8C6440` |
 | Floor | `floor_planks` (texture) | oak planks, 14 cm wide |
 | Furniture | `walnut` / `walnut_dark` / `oak` | `#7A5034` / `#553624` / `#C99B69` |
+| The bookcase's painted back | `case_back` | `#3E554F` deep green (gold and book colors pop on it) |
 | Accents | `terracotta` `mustard` `navy` `teal` `orange` | `#C4613D` `#D9A441` `#26395A` `#2F5E58` `#EE6A12` |
 | Metals | `brass` `gold` `silver` `bronze` `steel` | baked as diffuse, sheen added at runtime |
 
@@ -27,7 +28,11 @@ palette, not inline, unless they're one-off cover colors (`M("#7A2E2E")`).
 - **Bevels everywhere** (`lib.geo.box/rrect/cyl` do it by default): furniture 5–8 mm, small props
   1–3 mm, keycaps and trim 0.5–2 mm. Smooth shading + weighted normals keep flat faces flat.
 - **Turned shapes** (`lathe`) for anything round: pots, mugs, the trophy, the globe base, medals.
-- **Real scale** in meters: desk top 0.77, chair seat 0.445, door 0.92 × 2.08, shelf boards 0.5 apart.
+- **Real scale** in meters: desk top 0.77, chair seat 0.445, door 0.92 × 2.08, shelf boards 0.4 apart,
+  a medal 6–7 cm, a hardcover 24–27 × 16–18 cm, a paperback 20–22 × 13–14 cm.
+- **The library** is styled, not stocked: groups of books with bookends, two horizontal stacks, three
+  face-out books on stands, a plant, a candle and a vase between groups; risers (a step, an easel)
+  layer the academic sections so nothing important hides behind the thing in front of it.
 - **Lived-in, not cluttered**: every surface gets one or two small stories (sticky notes, a pen cup,
   a missed paper shot next to the bin). Leave negative space on the walls.
 - **Brief objects read first**: shelf, computer, phone, globe, window, letter (crooked 3.5°),
@@ -45,6 +50,8 @@ palette, not inline, unless they're one-off cover colors (`M("#7A2E2E")`).
 ## Lightmap budget
 
 - Two atlases: `props` (everything on the floor/walls) and `room` (walls, floor, wainscot, rug).
-- Desktop: props 2048 day + 1024 mask, room 1024 day + 512 mask. Mobile: half of each.
+- Desktop: props 2048 day + 512 mask, room 1024 day + 512 mask. Mobile: props 1024 + 256, room 512 + 256.
 - Uniform texel density; small dense details (keycaps, fringe, leaves, net) get 30–55% density.
-- Faces that touch another surface are culled before unwrapping (nobody sees a mug's bottom).
+- Faces that touch another surface are culled before unwrapping (nobody sees a mug's bottom); big
+  faces only when they're covered out to their corners. Shelf items aren't culled (they're held in
+  the hand); their hidden faces get 15% density instead.

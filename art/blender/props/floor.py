@@ -1,5 +1,5 @@
 """On the floor: the kilim rug with fringes, the monstera on a plant stand (back-right corner), a
-snake plant by the door, a waste basket with a missed paper shot, and a floor cushion."""
+snake plant between the door and the bookcase, a waste basket with a missed paper shot, and a floor cushion."""
 
 import math
 
@@ -121,7 +121,7 @@ def monstera():
 
 
 def snake_plant():
-    px, py = LEFT_X + 0.22, 0.32
+    px, py = LEFT_X + 0.2, 0.215  # under the Kozan poster, clear of the bookcase
     lathe("snake_pot", thick_profile([(0.1, 0.0), (0.105, 0.01), (0.11, 0.24), (0.115, 0.25)], 0.008), loc=(px, py, 0), mat="terracotta", seg=48)
     lathe("snake_soil", [(0.0, 0.0), (0.104, 0.0), (0.0, 0.003)], loc=(px, py, 0.225), mat="soil", seg=24)
     r = jitter(23)

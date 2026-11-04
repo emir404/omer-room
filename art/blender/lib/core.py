@@ -10,11 +10,16 @@ tags to merge meshes and give them their scene-contract names, so prop code neve
 
     own       "shelf" | "computer" | …  (an OBJECT_ID → part__<id>__NN)  or  "decor:<name>"
     contract  exact contract name for special nodes (screen__computer, slot__book__01, …)
-    pivot     pivot id this mesh moves with (globe, contact_flag, hoop_ball)
+    pivot     pivot id this mesh moves with (globe, contact_flag, contact_door, hoop_ball)
+    item      shelf item id (see `item()`): merged per material under item__<id>, never culled
     bake      lightmap set ("room" | "props") or "none" (emissive / dynamic / hidden)
     glow      "lamp" | "monitor" | "string" — emissive at night
     dynamic   True → realtime-lit at runtime (it moves, so a baked lightmap would be wrong)
     shadow    False → doesn't cast shadows / occlude in bakes (moving things, glass)
+    lm        lightmap density factor for this mesh (default: by size, see build_room)
+
+Contract empties may carry glTF extras as custom properties: `section`/`faceout` (items), `w`/`h`
+(section anchors), `open` (the mailbox door). build_room keeps exactly those.
 """
 
 import contextlib
@@ -56,6 +61,30 @@ def group(name, **tags):
         yield _state["coll"]
     finally:
         _state["coll"], _state["tags"] = prev_coll, prev_tags
+
+
+def basis(x, z):
+    """4×4 rotation whose local +X points along `x` and +Z along `z` (z is re-orthogonalized)."""
+    x = Vector(x).normalized()
+    z = Vector(z)
+    z = (z - x * z.dot(x)).normalized()
+    y = z.cross(x)
+    return Matrix((x, y, z)).transposed().to_4x4()
+
+
+@contextlib.contextmanager
+def item(item_id, frame, section, faceout=False, own="shelf"):
+    """A thing on the shelf you can pick up. Everything created inside is tagged item=<id>;
+    build_room merges it per material under an empty `item__<id>` at the item's middle.
+    `frame` orients that empty: local +X out of the face you'd show someone, +Z up (only its
+    rotation is used). Model items closed on every side: they're seen from all sides in hand."""
+    root = bpy.data.objects.new(f"itemroot_{item_id}", None)
+    root.empty_display_size = 0.04
+    root.matrix_world = frame.to_3x3().normalized().to_4x4()
+    link(root)
+    tag(root, contract=f"item__{item_id}", own=own, section=section, faceout=True if faceout else None)
+    with group(f"item_{item_id}", item=item_id):
+        yield root
 
 
 def tag(ob, **tags):

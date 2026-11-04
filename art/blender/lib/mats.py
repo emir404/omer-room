@@ -61,6 +61,17 @@ PALETTE = {
     "ball": ("#D8692A", 0.75, 0.0),
     "net": ("#F4F1EA", 1.0, 0.0),
     "screen_off": ("#121416", 0.3, 0.0),
+    # the library: the bookcase's painted back, paper goods, ribbons
+    "case_back": ("#3E554F", 0.8, 0.0),
+    "kraft": ("#B48C5C", 0.95, 0.0),
+    "twine": ("#C8A878", 1.0, 0.0),
+    "wax": ("#F2EADB", 0.6, 0.0),
+    "glaze": ("#D8D2C4", 0.35, 0.0),
+    "sleeve": ("#E4E8E6", 0.25, 0.0),
+    "ribbon_red": ("#A8271F", 0.45, 0.0),
+    "ribbon_white": ("#F3EFE6", 0.45, 0.0),
+    "ribbon_navy": ("#24365A", 0.45, 0.0),
+    "ribbon_teal": ("#2C5C57", 0.45, 0.0),
     # metals (baked as diffuse; reflections come from the runtime env map)
     "brass": ("#C8A04A", 0.35, 1.0),
     "gold": ("#E2B43F", 0.3, 1.0),
@@ -154,7 +165,10 @@ def M(name):
         bsdf.inputs["Metallic"].default_value = metal
         return m
     if name.startswith("#"):
-        # ad-hoc color: M("#AABBCC")
+        # ad-hoc color: M("#AABBCC") → one shared material per color
+        existing = bpy.data.materials.get("c_" + name[1:].lower())
+        if existing is not None:
+            return existing
         m, bsdf = _principled("c_" + name[1:].lower())
         bsdf.inputs["Base Color"].default_value = hex_rgba(name)
         bsdf.inputs["Roughness"].default_value = 0.7
