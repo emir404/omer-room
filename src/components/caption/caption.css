@@ -232,6 +232,37 @@ html:not([data-mode="room"]) .captions {
   color: rgb(255 255 255 / 0.86);
 }
 
+/* the window's light: your time · day · night */
+.cap-light {
+  display: inline-flex;
+  justify-self: start;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+}
+.cap-light-option {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(255 255 255 / 0.72);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.cap-light-option:hover {
+  color: #fff;
+}
+.cap-light-option[aria-checked="true"] {
+  background: rgb(255 255 255 / 0.9);
+  color: #1d1d1f;
+  text-shadow: none;
+}
+
 /* rows: the kit's Row anatomy, on the dark */
 .cap-rows {
   list-style: none;

@@ -8,6 +8,8 @@ import { Row } from "@/components/ui/Row";
 import type { BookStory, CaptionStory, ChapterData, ShelfSection } from "@/lib/content/chapters";
 import { chapterHref } from "@/lib/routes";
 import { SECTION_IDS, type SectionId } from "@/lib/scene-contract";
+import { useRoom } from "@/lib/store";
+import { storeOverride, type TimeOverride } from "@/lib/time-of-day";
 
 /**
  * What the room says beside the thing you're looking at. Each chapter (and each thing on the shelf,
@@ -69,6 +71,35 @@ function RowLink({ href, title, subtitle, meta, lead }: { href: string; title: s
         </Row>
       </Link>
     </li>
+  );
+}
+
+/** Day or night outside (and in the room): follows your clock until you pick one. */
+function LightSwitch() {
+  const current = useRoom((s) => s.timeOverride);
+  const options: { value: TimeOverride; label: string }[] = [
+    { value: "auto", label: "Your time" },
+    { value: "day", label: "Day" },
+    { value: "night", label: "Night" },
+  ];
+  return (
+    <div className="cap-light" role="radiogroup" aria-label="Light outside">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={current === o.value}
+          className="cap-light-option"
+          onClick={() => {
+            storeOverride(o.value);
+            useRoom.setState({ timeOverride: o.value });
+          }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -280,6 +311,7 @@ export function resolveView(data: ChapterData, chapter: string | null, item: str
           <>
             <Head kicker={page.kicker} title={page.title} />
             <Summary>{page.summary}</Summary>
+            <LightSwitch />
             <Metrics items={page.metrics} />
             {page.facts.length ? (
               <dl className="cap-facts">
