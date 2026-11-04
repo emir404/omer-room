@@ -18,7 +18,10 @@ metrics:
     label: designers I lead
   - value: 15M+
     label: social impressions
-images: []
+images:
+  - src: /content/computer/witharc-home.webp
+    alt: "The Arc Studio homepage: “Launch in a month. We design and build for AI startups: your brand, site, product, and launch video. Trusted by teams at Automattic, Axiom, AgentMail, AgentPhone, Orchid, Conviction & more”, with a Book a call button."
+    caption: witharc.co
 links:
   - label: witharc.co
     url: https://witharc.co

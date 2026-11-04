@@ -76,6 +76,9 @@ export function ScreenLayer({ data }: { data: SceneData }) {
   const lastApp = useRoom((s) => s.lastComputerApp);
   const [vw, vh] = size.split("x").map(Number) as [number, number];
   const computer = computerSize(vw, vh);
+  // phones get the computer's compact design: a list of roles (/computer), then a role page
+  const compact = !isDesktopWidth(vw);
+  const osActive = compact ? (chapter === "computer" ? item : null) : chapter === "computer" ? (item ?? lastApp) : lastApp;
 
   const wantsDock = ready && atRest && (focus === "computer" || focus === "phone");
   const docked: ScreenId | null = wantsDock && !(focus === "computer" && !isDesktopWidth(vw)) ? (focus as ScreenId) : null;
@@ -92,10 +95,21 @@ export function ScreenLayer({ data }: { data: SceneData }) {
     <div className="screens" data-docked={docked ?? undefined} data-ready={ready ? "1" : "0"}>
       {docked ? <button type="button" className="screens-backdrop" aria-label="Step back into the room" tabIndex={-1} onClick={() => navigate("/")} /> : null}
       <Slot id="computer" width={computer.width} height={computer.height} docked={docked === "computer"} label="Ömer's computer">
-        <OmerOS apps={data.computer} active={chapter === "computer" ? (item ?? lastApp) : lastApp} name={data.name} />
+        <OmerOS apps={data.computer} active={osActive} name={data.name} layout={compact ? "compact" : "wide"} />
       </Slot>
       <Slot id="phone" width={PHONE.width} height={PHONE.height} docked={docked === "phone"} label="Ömer's phone">
-        <PhoneUI apps={data.phone} socials={data.socials} name={data.name} tagline={data.tagline} email={data.email} active={chapter === "phone" ? item : null} />
+        <PhoneUI
+          apps={data.phone}
+          socials={data.socials}
+          name={data.name}
+          tagline={data.tagline}
+          email={data.email}
+          active={chapter === "phone" ? item : null}
+          awake={docked === "phone"}
+          now={data.now}
+          location={data.location}
+          calUrl={data.calUrl}
+        />
       </Slot>
     </div>
   );
